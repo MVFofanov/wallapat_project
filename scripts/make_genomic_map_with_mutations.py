@@ -36,7 +36,8 @@ def parse_genbank(genbank_file: str) -> List[Dict]:
 
 
 def plot_mutations(df: pd.DataFrame, genes: List[Dict], ancestor_phage: str, output_path: str) -> None:
-    """Plots the mutations along the genome for each phage lineage with a genomic map and reference genome line."""
+    """Plots the mutations along the genome for each phage lineage with a genomic map, reference genome line,
+    and a horizontal histogram of mutation counts."""
     # Define colorblind-friendly mutation colors
     mutation_colors: Dict[str, str] = {
         'A': '#377eb8',  # Blue
@@ -45,13 +46,21 @@ def plot_mutations(df: pd.DataFrame, genes: List[Dict], ancestor_phage: str, out
         'T': '#a65628'  # Brown
     }
 
+    # Remove duplicate positions for reference genome
+    unique_reference_positions = df[['POS', 'REF']].drop_duplicates()
+
     # Order lineages based on occurrence
     lineages = list(df['Phage Lineage'].unique())
     lineages.insert(0, ancestor_phage)  # Add ancestor phage as the first line
     lineage_map = {lineage: i for i, lineage in enumerate(reversed(lineages))}
     df['Lineage Order'] = df['Phage Lineage'].map(lineage_map)
 
-    fig, ax = plt.subplots(figsize=(12, len(lineages) * 0.6 + 3))
+    # Count mutations per lineage
+    mutation_counts = df.groupby('Phage Lineage')['POS'].count().to_dict()
+    mutation_counts[ancestor_phage] = len(unique_reference_positions)  # Updated count for ancestor
+
+    fig, (ax, ax_hist) = plt.subplots(ncols=2, gridspec_kw={'width_ratios': [3, 1]},
+                                      figsize=(14, len(lineages) * 0.6 + 3), sharey=True)
 
     # Plot gene map
     gene_y = len(lineages) + 1  # Position above mutations
@@ -66,7 +75,8 @@ def plot_mutations(df: pd.DataFrame, genes: List[Dict], ancestor_phage: str, out
     # Plot ancestor genome line
     ancestor_y = lineage_map[ancestor_phage]
     ax.plot([0, 6034], [ancestor_y, ancestor_y], linestyle='-', color='black', alpha=0.8, linewidth=1.5)
-    ax.scatter(df['POS'], [ancestor_y] * len(df), c=df['REF'].map(mutation_colors), edgecolors='black', s=60)
+    ax.scatter(unique_reference_positions['POS'], [ancestor_y] * len(unique_reference_positions),
+               c=unique_reference_positions['REF'].map(mutation_colors), edgecolors='black', s=60)
     ax.text(-600, ancestor_y, ancestor_phage, va='center', fontsize=10, fontweight='bold', ha='right')
 
     # Plot lines for each phage lineage
@@ -77,11 +87,26 @@ def plot_mutations(df: pd.DataFrame, genes: List[Dict], ancestor_phage: str, out
                    edgecolors='black', s=60)
         ax.text(-600, y_pos, lineage, va='center', fontsize=10, fontweight='bold', ha='right')
 
+    # Plot histogram of mutation counts
+    y_positions = [lineage_map[l] for l in lineages]
+    hist_values = [mutation_counts[l] for l in lineages]
+    ax_hist.barh(y_positions, hist_values, color='gray', alpha=0.5, height=0.4, align='center')
+    for y, count in zip(y_positions, hist_values):
+        ax_hist.text(count + 1, y, str(count), va='center', fontsize=10)
+
     # Labels and aesthetics
     ax.set_xlabel("Genomic Position")
-    ax.set_yticks([])
+    ax.set_yticks(y_positions)
+    ax.set_yticklabels([])
     ax.set_xlim(-600, 6500)  # moves start position for phage line name
     ax.set_title("Phage Lineage Mutations and Genomic Map")
+
+    ax_hist.set_xlim(0, max(hist_values) * 1.1)
+    ax_hist.set_xticks(range(0, max(hist_values) + 1, max(1, max(hist_values) // 5)))
+    ax_hist.set_xlabel("Number of Mutations")
+    ax_hist.set_yticks(y_positions)
+    ax_hist.set_yticklabels([])
+    ax_hist.set_title("Mutation Count")
 
     # Move legend outside of the plot
     ax.legend(
