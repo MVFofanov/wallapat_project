@@ -82,7 +82,7 @@ def plot_stacked_barplot(ax_bar, df, mutation_colors):
     for nucleotide in ['A', 'C', 'G', 'T']:
         if nucleotide in mutation_counts_per_pos.columns:
             ax_bar.bar(mutation_counts_per_pos.index, mutation_counts_per_pos[nucleotide], bottom=bottom_values,
-                       color=mutation_colors[nucleotide], label=nucleotide, alpha=0.8, edgecolor='black', linewidth=0.2)
+                       color=mutation_colors[nucleotide], label=nucleotide)
             bottom_values = mutation_counts_per_pos[nucleotide] if bottom_values is None else bottom_values + mutation_counts_per_pos[nucleotide]
     ax_bar.set_xlabel("Genomic Position")
     ax_bar.set_ylabel("Mutation Frequency")
@@ -104,7 +104,7 @@ def plot_mutations(df: pd.DataFrame, genes: List[Dict], ancestor_phage: str, out
     mutation_counts[ancestor_phage] = len(unique_reference_positions)
 
     fig, axs = plt.subplots(nrows=2, ncols=2, gridspec_kw={'height_ratios': [3, 1], 'width_ratios': [3, 1]},
-                            figsize=(24, len(lineages) * 0.6 + 6))
+                            figsize=(24, len(lineages) * 0.6 + 6), sharey='row')
     ax, ax_hist = axs[0]
     ax_bar, ax_empty = axs[1]
 
