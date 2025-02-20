@@ -34,6 +34,7 @@ def parse_genbank(genbank_file: str) -> List[Dict]:
                 genes.append({"start": start, "end": end, "gene": gene_name})
     return genes
 
+
 def plot_mutations(df: pd.DataFrame, genes: List[Dict], output_path: str) -> None:
     """Plots the mutations along the genome for each phage lineage with a genomic map."""
     # Define colorblind-friendly mutation colors
@@ -53,10 +54,13 @@ def plot_mutations(df: pd.DataFrame, genes: List[Dict], output_path: str) -> Non
 
     # Plot gene map
     gene_y = len(lineages) + 1  # Position above mutations
-    for gene in genes:
+    y_offset = 0.6  # Adjust vertical spacing for text labels
+
+    for i, gene in enumerate(genes):
         ax.arrow(gene["start"], gene_y, gene["end"] - gene["start"], 0, head_width=0.5, head_length=100,
                  fc='gray', ec='black', length_includes_head=True)
-        ax.text((gene["start"] + gene["end"]) / 2, gene_y + 0.5, gene["gene"], ha='center', fontsize=8)
+        ax.text((gene["start"] + gene["end"]) / 2, gene_y + y_offset * ((-1) ** i),
+                gene["gene"], ha='center', fontsize=8, rotation=45, va='bottom')
 
     # Plot lines for each phage lineage
     for lineage, data in df.groupby('Phage Lineage'):
@@ -69,8 +73,7 @@ def plot_mutations(df: pd.DataFrame, genes: List[Dict], output_path: str) -> Non
     # Labels and aesthetics
     ax.set_xlabel("Genomic Position")
     ax.set_yticks([])
-    # ax.set_xlim(-800, 6500)
-    ax.set_xlim(-600, 6500) # moves start position for phage line name
+    ax.set_xlim(-600, 6500)  # moves start position for phage line name
     ax.set_title("Phage Lineage Mutations and Genomic Map")
 
     # Move legend outside of the plot
