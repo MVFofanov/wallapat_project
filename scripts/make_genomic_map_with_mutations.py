@@ -70,9 +70,24 @@ def plot_mutation_histogram(ax_hist, lineage_map, mutation_counts):
     """Plots the histogram of mutation counts per lineage."""
     y_positions = [lineage_map[l] for l in lineage_map.keys()]
     hist_values = [mutation_counts[l] for l in lineage_map.keys()]
-    ax_hist.barh(y_positions, hist_values, color='gray', alpha=0.6, height=0.4, align='center')
+    ax_hist.barh(y_positions, hist_values, color='gray', alpha=0.6, height=0.4, align='center', edgecolor='black')
     for y, count in zip(y_positions, hist_values):
         ax_hist.text(count + 1, y, str(count), va='center', fontsize=10)
+
+
+def plot_stacked_barplot(ax_bar, df, mutation_colors):
+    """Plots a stacked barplot for mutation positions, excluding the reference genome."""
+    mutation_counts_per_pos = df.groupby(['POS', 'MUT']).size().unstack(fill_value=0)
+    bottom_values = None
+    for nucleotide in ['A', 'C', 'G', 'T']:
+        if nucleotide in mutation_counts_per_pos.columns:
+            ax_bar.bar(mutation_counts_per_pos.index, mutation_counts_per_pos[nucleotide], bottom=bottom_values,
+                       color=mutation_colors[nucleotide], label=nucleotide, alpha=0.8, edgecolor='black', linewidth=0.2)
+            bottom_values = mutation_counts_per_pos[nucleotide] if bottom_values is None else bottom_values + mutation_counts_per_pos[nucleotide]
+    ax_bar.set_xlabel("Genomic Position")
+    ax_bar.set_ylabel("Mutation Frequency")
+    ax_bar.set_title("Stacked Nucleotide Mutations per Position")
+    ax_bar.legend()
 
 
 def plot_mutations(df: pd.DataFrame, genes: List[Dict], ancestor_phage: str, output_path: str) -> None:
@@ -88,8 +103,10 @@ def plot_mutations(df: pd.DataFrame, genes: List[Dict], ancestor_phage: str, out
     mutation_counts = df.groupby('Phage Lineage')['POS'].count().to_dict()
     mutation_counts[ancestor_phage] = len(unique_reference_positions)
 
-    fig, (ax, ax_hist) = plt.subplots(ncols=2, gridspec_kw={'width_ratios': [3, 1]},
-                                      figsize=(24, len(lineages) * 0.6 + 3), sharey=True)
+    fig, axs = plt.subplots(nrows=2, ncols=2, gridspec_kw={'height_ratios': [3, 1], 'width_ratios': [3, 1]},
+                            figsize=(24, len(lineages) * 0.6 + 6))
+    ax, ax_hist = axs[0]
+    ax_bar, ax_empty = axs[1]
 
     gene_y = len(lineages) + 1
     plot_gene_map(ax, genes, gene_y)
@@ -97,15 +114,22 @@ def plot_mutations(df: pd.DataFrame, genes: List[Dict], ancestor_phage: str, out
     plot_ancestor_line(ax, ancestor_y, unique_reference_positions, ancestor_phage, mutation_colors)
     plot_phage_mutations(ax, df, lineage_map, mutation_colors)
     plot_mutation_histogram(ax_hist, lineage_map, mutation_counts)
+    plot_stacked_barplot(ax_bar, df[df['Phage Lineage'] != ancestor_phage], mutation_colors)
 
     ax.set_xlabel("Genomic Position")
     ax.set_yticks([])
     ax.set_xlim(-600, 6500)
     ax.set_title("Phage Lineage Mutations and Genomic Map")
-    ax_hist.set_xlim(0, max(mutation_counts.values()) * 1.1)
     ax_hist.set_xlabel("Number of Mutations")
-    ax_hist.set_yticks([])
-    ax_hist.set_title("Mutation Count")
+    ax_hist.set_ylabel("Phage Lineage")
+    ax_hist.set_title("Mutation Count per Lineage")
+    ax_bar.set_xlabel("Genomic Position")
+    ax_bar.set_ylabel("Mutation Frequency")
+    ax_bar.set_title("Stacked Nucleotide Mutations per Position")
+
+    ax_empty.set_xticks([])
+    ax_empty.set_yticks([])
+    ax_empty.axis("off")
 
     ax.legend(
         handles=[plt.Line2D([0], [0], marker='o', color='w', markerfacecolor=c, markersize=10, label=n) for n, c in
