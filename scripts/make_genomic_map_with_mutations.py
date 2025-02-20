@@ -79,10 +79,11 @@ def plot_stacked_barplot(ax_bar, df, mutation_colors):
     """Plots a stacked barplot for mutation positions, excluding the reference genome."""
     mutation_counts_per_pos = df.groupby(['POS', 'MUT']).size().unstack(fill_value=0)
     bottom_values = None
+    bar_width = 10  # Make bars 5 times wider
     for nucleotide in ['A', 'C', 'G', 'T']:
         if nucleotide in mutation_counts_per_pos.columns:
             ax_bar.bar(mutation_counts_per_pos.index, mutation_counts_per_pos[nucleotide], bottom=bottom_values,
-                       color=mutation_colors[nucleotide], label=nucleotide)
+                       color=mutation_colors[nucleotide], label=nucleotide, width=bar_width)
             bottom_values = mutation_counts_per_pos[nucleotide] if bottom_values is None else bottom_values + mutation_counts_per_pos[nucleotide]
     ax_bar.set_xlabel("Genomic Position")
     ax_bar.set_ylabel("Mutation Frequency")
