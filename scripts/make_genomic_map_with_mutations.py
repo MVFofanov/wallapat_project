@@ -1,19 +1,20 @@
 import os
-from typing import Dict, Tuple, List
+from typing import Dict, List
 
-import pandas as pd
 import matplotlib
 import matplotlib.pyplot as plt
-import seaborn as sns
+import pandas as pd
 from Bio import SeqIO
 
 matplotlib.use('Agg')
 # Ensure Qt offscreen rendering
 os.environ["QT_QPA_PLATFORM"] = "offscreen"
 
+
 def load_mutation_data(file_path: str, sheet_name: str) -> pd.DataFrame:
     """Loads the mutation data from an Excel file."""
     return pd.read_excel(file_path, sheet_name=sheet_name)
+
 
 def extract_lineage_info(df: pd.DataFrame, ancestor_phage: str) -> pd.DataFrame:
     """Extract ancestor phage, phage lineage, and host bacteria from combined_id."""
@@ -21,6 +22,7 @@ def extract_lineage_info(df: pd.DataFrame, ancestor_phage: str) -> pd.DataFrame:
     df['Phage Lineage'] = df['combined_id'].apply(lambda x: '.'.join(x.split('.')[1:]))
     df['Host Bacteria'] = df['Phage Lineage'].apply(lambda x: x.rsplit(ancestor_phage, 1)[0])
     return df
+
 
 def parse_genbank(genbank_file: str) -> List[Dict]:
     """Parses a GenBank file to extract gene annotations."""
