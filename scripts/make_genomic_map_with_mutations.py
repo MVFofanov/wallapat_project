@@ -127,7 +127,10 @@ def plot_stacked_barplot(ax_bar, df, mutation_colors):
 
 def plot_mutations(df: pd.DataFrame, genes: List[Dict], ancestor_phage: str, output_path: str) -> None:
     """Main function to plot the mutations along the genome."""
-    mutation_colors = {'A': '#377eb8', 'C': '#ff7f00', 'G': '#984ea3', 'T': '#a65628'}
+    mutation_colors = {'A': '#377eb8',
+                       'C': '#ff7f00',
+                       'G': '#984ea3',
+                       'T': '#a65628'}
 
     unique_reference_positions = df[['POS', 'REF']].drop_duplicates()
     lineages = list(df['Phage Lineage'].unique())
