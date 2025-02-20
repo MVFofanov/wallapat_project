@@ -76,7 +76,7 @@ def plot_mutations(df: pd.DataFrame, genes: List[Dict], ancestor_phage: str, out
     ancestor_y = lineage_map[ancestor_phage]
     ax.plot([0, 6034], [ancestor_y, ancestor_y], linestyle='-', color='black', alpha=0.6, linewidth=1.5)
     ax.scatter(unique_reference_positions['POS'], [ancestor_y] * len(unique_reference_positions),
-               c=unique_reference_positions['REF'].map(mutation_colors), edgecolors='black', alpha=0.6, s=60,
+               c=unique_reference_positions['REF'].map(mutation_colors), edgecolors='black', alpha=0.8, s=60,
                linewidths=0.2)
     ax.text(-600, ancestor_y, ancestor_phage, va='center', fontsize=10, fontweight='bold', ha='right')
 
@@ -84,7 +84,7 @@ def plot_mutations(df: pd.DataFrame, genes: List[Dict], ancestor_phage: str, out
     for lineage, data in df.groupby('Phage Lineage'):
         y_pos = lineage_map[lineage]
         ax.plot([0, 6034], [y_pos, y_pos], linestyle='-', color='gray', alpha=0.5)
-        ax.scatter(data['POS'], [y_pos] * len(data), c=data['MUT'].map(mutation_colors), label=lineage, alpha=0.6,
+        ax.scatter(data['POS'], [y_pos] * len(data), c=data['MUT'].map(mutation_colors), label=lineage, alpha=0.8,
                    edgecolors='black', s=60, linewidths=0.2)
         ax.text(-600, y_pos, lineage, va='center', fontsize=10, fontweight='bold', ha='right')
 
