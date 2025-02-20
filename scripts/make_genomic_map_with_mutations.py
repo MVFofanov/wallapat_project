@@ -185,15 +185,18 @@ if __name__ == "__main__":
     # File path and sheet name (replace with actual path)
     wd = "/mnt/c/crassvirales/wallapat_project"
     file_path = f"{wd}/20250213_REF_MUT_analysis.xlsx"
-    ancestor_phage = 'P1L1'
-    genbank_file = f"{wd}/{ancestor_phage}_phold_annotation.gbk"
-    sheet_name = f"{ancestor_phage}_filter"
 
     results = f"{wd}/results"
     figures = f"{results}/figures"
-    output_file = f"{figures}/phage_mutations_with_genes.png"
 
-    df = load_mutation_data(file_path, sheet_name)
-    df = extract_lineage_info(df, ancestor_phage=ancestor_phage)
-    genes = parse_genbank(genbank_file)
-    plot_mutations(df, genes, f'{ancestor_phage}_reference', output_file)
+    phages = ('P1L1', 'P2L1')
+    for ancestor_phage in phages:
+        genbank_file = f"{wd}/{ancestor_phage}_phold_annotation.gbk"
+        sheet_name = f"{ancestor_phage}_filter"
+
+        output_file = f"{figures}/{ancestor_phage}_phage_mutations_with_genes.png"
+
+        df = load_mutation_data(file_path, sheet_name)
+        df = extract_lineage_info(df, ancestor_phage=ancestor_phage)
+        genes = parse_genbank(genbank_file)
+        plot_mutations(df, genes, f'{ancestor_phage}_reference', output_file)
