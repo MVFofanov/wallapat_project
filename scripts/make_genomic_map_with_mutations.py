@@ -105,7 +105,7 @@ def plot_mutations(df: pd.DataFrame, genes: List[Dict], ancestor_phage: str, out
     mutation_counts[ancestor_phage] = len(unique_reference_positions)
 
     fig, axs = plt.subplots(nrows=2, ncols=2, gridspec_kw={'height_ratios': [3, 1], 'width_ratios': [3, 1]},
-                            figsize=(24, len(lineages) * 0.6 + 6), sharey='row')
+                            figsize=(24, len(lineages) * 0.6 + 6), sharex='col', sharey='row')
     ax, ax_hist = axs[0]
     ax_bar, ax_empty = axs[1]
 
