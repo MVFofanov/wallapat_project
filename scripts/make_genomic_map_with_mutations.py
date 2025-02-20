@@ -35,8 +35,8 @@ def parse_genbank(genbank_file: str) -> List[Dict]:
     return genes
 
 
-def plot_mutations(df: pd.DataFrame, genes: List[Dict], output_path: str) -> None:
-    """Plots the mutations along the genome for each phage lineage with a genomic map."""
+def plot_mutations(df: pd.DataFrame, genes: List[Dict], ancestor_phage: str, output_path: str) -> None:
+    """Plots the mutations along the genome for each phage lineage with a genomic map and reference genome line."""
     # Define colorblind-friendly mutation colors
     mutation_colors: Dict[str, str] = {
         'A': '#377eb8',  # Blue
@@ -46,11 +46,12 @@ def plot_mutations(df: pd.DataFrame, genes: List[Dict], output_path: str) -> Non
     }
 
     # Order lineages based on occurrence
-    lineages = df['Phage Lineage'].unique()
+    lineages = list(df['Phage Lineage'].unique())
+    lineages.insert(0, ancestor_phage)  # Add ancestor phage as the first line
     lineage_map = {lineage: i for i, lineage in enumerate(reversed(lineages))}
     df['Lineage Order'] = df['Phage Lineage'].map(lineage_map)
 
-    fig, ax = plt.subplots(figsize=(12, len(lineages) * 0.6 + 2))
+    fig, ax = plt.subplots(figsize=(12, len(lineages) * 0.6 + 3))
 
     # Plot gene map
     gene_y = len(lineages) + 1  # Position above mutations
@@ -61,6 +62,12 @@ def plot_mutations(df: pd.DataFrame, genes: List[Dict], output_path: str) -> Non
                  fc='gray', ec='black', length_includes_head=True)
         ax.text((gene["start"] + gene["end"]) / 2, gene_y + y_offset * ((-1) ** i),
                 gene["gene"], ha='center', fontsize=8, rotation=45, va='bottom')
+
+    # Plot ancestor genome line
+    ancestor_y = lineage_map[ancestor_phage]
+    ax.plot([0, 6034], [ancestor_y, ancestor_y], linestyle='-', color='black', alpha=0.8, linewidth=1.5)
+    ax.scatter(df['POS'], [ancestor_y] * len(df), c=df['REF'].map(mutation_colors), edgecolors='black', s=60)
+    ax.text(-600, ancestor_y, ancestor_phage, va='center', fontsize=10, fontweight='bold', ha='right')
 
     # Plot lines for each phage lineage
     for lineage, data in df.groupby('Phage Lineage'):
@@ -104,4 +111,4 @@ if __name__ == "__main__":
     df = load_mutation_data(file_path, sheet_name)
     df = extract_lineage_info(df, ancestor_phage=ancestor_phage)
     genes = parse_genbank(genbank_file)
-    plot_mutations(df, genes, output_file)
+    plot_mutations(df, genes, f'{ancestor_phage}_reference', output_file)
