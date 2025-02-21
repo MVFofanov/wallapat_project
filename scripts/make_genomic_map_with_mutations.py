@@ -45,7 +45,7 @@ def plot_gene_map(ax, genes, gene_y):
         ax.arrow(gene["start"], gene_y, gene["end"] - gene["start"], 0, head_width=0.5, head_length=100,
                  fc='gray', ec='black', length_includes_head=True)
         ax.text((gene["start"] + gene["end"]) / 2, gene_y + y_offset * ((-1) ** i),
-                gene["gene"], ha='center', fontsize=8, rotation=45, va='bottom')
+                gene["gene"], ha='center', fontsize=24, rotation=45, va='bottom')
 
 
 def plot_ancestor_line(ax, ancestor_y, unique_reference_positions, ancestor_phage, mutation_colors):
@@ -54,7 +54,7 @@ def plot_ancestor_line(ax, ancestor_y, unique_reference_positions, ancestor_phag
     ax.scatter(unique_reference_positions['POS'], [ancestor_y] * len(unique_reference_positions),
                c=unique_reference_positions['REF'].map(mutation_colors), edgecolors='black', alpha=0.8, s=100,
                linewidths=0.2)
-    ax.text(-600, ancestor_y, ancestor_phage, va='center', fontsize=10, fontweight='bold', ha='right')
+    ax.text(-600, ancestor_y, ancestor_phage, va='center', fontsize=24, fontweight='bold', ha='right')
 
 
 def plot_phage_mutations(ax, df, lineage_map, mutation_colors):
@@ -64,7 +64,7 @@ def plot_phage_mutations(ax, df, lineage_map, mutation_colors):
         ax.plot([0, 6034], [y_pos, y_pos], linestyle='-', color='gray', alpha=0.5)
         ax.scatter(data['POS'], [y_pos] * len(data), c=data['MUT'].map(mutation_colors), label=lineage, alpha=0.8,
                    edgecolors='black', s=100, linewidths=0.2)
-        ax.text(-600, y_pos, lineage, va='center', fontsize=10, fontweight='bold', ha='right')
+        ax.text(-600, y_pos, lineage, va='center', fontsize=24, fontweight='bold', ha='right')
 
 
 def plot_mutation_histogram(ax_hist, lineage_map, mutation_counts):
@@ -75,14 +75,14 @@ def plot_mutation_histogram(ax_hist, lineage_map, mutation_counts):
     ax_hist.barh(y_positions, hist_values, color='gray', alpha=0.6, height=0.4, align='center', edgecolor='black')
 
     for y, count in zip(y_positions, hist_values):
-        ax_hist.text(count + 1, y, str(count), va='center', fontsize=10)
+        ax_hist.text(count + 1, y, str(count), va='center', fontsize=14, fontweight='bold')
 
-    ax_hist.set_xlabel("Total Mutations")
-    ax_hist.set_ylabel("Phage Lineage")
-    ax_hist.set_title("Mutation Count per Lineage")
+    ax_hist.set_xlabel("Total Mutations", fontsize=28, fontweight='bold')
+    ax_hist.set_ylabel("Phage Lineage", fontsize=28, fontweight='bold')
+    ax_hist.set_title("Mutation Count per Lineage", fontsize=36, fontweight='bold')
 
-    # Ensure x-axis tick labels are displayed
-    ax_hist.xaxis.set_tick_params(labelbottom=True)  # Force showing x-tick labels
+    ax_hist.xaxis.set_tick_params(labelsize=24, labelbottom=True)
+    ax_hist.yaxis.set_tick_params(labelsize=24)
 
     ax_hist.xaxis.set_major_locator(ticker.MultipleLocator(max(1, max(hist_values) // 5)))
     ax_hist.xaxis.set_minor_locator(ticker.AutoMinorLocator(2))
@@ -103,34 +103,31 @@ def plot_stacked_barplot(ax_bar, df, mutation_colors):
                                                                                               mutation_counts_per_pos[
                                                                                                   nucleotide]
 
-    ax_bar.set_xlabel("Genomic Position")
-    ax_bar.set_ylabel("Mutation Frequency")
-    ax_bar.set_title("Stacked Nucleotide Mutations per Position")
+    ax_bar.set_xlabel("Genomic Position", fontsize=28, fontweight='bold')
+    ax_bar.set_ylabel("Mutation Frequency", fontsize=28, fontweight='bold')
+    ax_bar.set_title("Stacked Nucleotide Mutations per Position", fontsize=36, fontweight='bold')
 
     max_y = int(mutation_counts_per_pos.sum(axis=1).max())
     y_tick_step = max(1, max_y // 5)
     y_ticks = list(range(0, max_y + 1, y_tick_step))
     ax_bar.set_yticks(y_ticks)
-    ax_bar.set_yticklabels([str(tick) for tick in y_ticks], fontsize=10, color='black')
+    ax_bar.set_yticklabels([str(tick) for tick in y_ticks], fontsize=24, fontweight='bold')
 
-    # Ensure y-axis tick labels are displayed
-    ax_bar.yaxis.set_tick_params(labelleft=True)  # Force showing y-tick labels
+    ax_bar.yaxis.set_tick_params(labelsize=24, labelleft=True)
+    ax_bar.xaxis.set_tick_params(labelsize=24)
 
     ax_bar.yaxis.set_major_formatter(ticker.FuncFormatter(lambda x, _: int(x)))
     ax_bar.yaxis.set_major_locator(ticker.MultipleLocator(y_tick_step))
     ax_bar.yaxis.set_minor_locator(ticker.AutoMinorLocator(2))
     ax_bar.grid(axis="y", linestyle="--", alpha=0.5)
 
-    plt.setp(ax_bar.get_yticklabels(), visible=True, fontsize=12, color='black', fontweight='bold')
-    ax_bar.legend()
+    plt.setp(ax_bar.get_yticklabels(), visible=True, fontsize=14, color='black', fontweight='bold')
+    ax_bar.legend(fontsize=24)
 
 
 def plot_mutations(df: pd.DataFrame, genes: List[Dict], ancestor_phage: str, output_path: str) -> None:
     """Main function to plot the mutations along the genome."""
-    mutation_colors = {'A': '#377eb8',
-                       'C': '#ff7f00',
-                       'G': '#984ea3',
-                       'T': '#a65628'}
+    mutation_colors = {'A': '#377eb8', 'C': '#ff7f00', 'G': '#984ea3', 'T': '#a65628'}
 
     unique_reference_positions = df[['POS', 'REF']].drop_duplicates()
     lineages = list(df['Phage Lineage'].unique())
@@ -148,36 +145,30 @@ def plot_mutations(df: pd.DataFrame, genes: List[Dict], ancestor_phage: str, out
     ax, ax_hist = axs[0]  # Top-left: Genome Mutations | Top-right: Mutation Histogram
     ax_bar, ax_empty = axs[1]  # Bottom-left: Stacked Barplot | Bottom-right: Empty placeholder
 
-    # ✅ Share specific axes while keeping labels visible
     ax_bar.sharex(ax)  # Bottom-left shares x-axis with Top-left
     ax_hist.sharey(ax)  # Top-right shares y-axis with Top-left
 
-    gene_y = len(lineages) + 1
-    plot_gene_map(ax, genes, gene_y)
-    ancestor_y = lineage_map[ancestor_phage]
-    plot_ancestor_line(ax, ancestor_y, unique_reference_positions, ancestor_phage, mutation_colors)
+    plot_gene_map(ax, genes, len(lineages) + 1)
+    plot_ancestor_line(ax, lineage_map[ancestor_phage], unique_reference_positions, ancestor_phage, mutation_colors)
     plot_phage_mutations(ax, df, lineage_map, mutation_colors)
 
     plot_mutation_histogram(ax_hist, lineage_map, mutation_counts)
     plot_stacked_barplot(ax_bar, df[df['Phage Lineage'] != ancestor_phage], mutation_colors)
 
-    # ✅ Ensure all tick labels are shown
     ax_hist.xaxis.set_visible(True)
     ax_hist.xaxis.set_tick_params(labelbottom=True)
     ax_bar.yaxis.set_visible(True)
     ax_bar.yaxis.set_tick_params(labelleft=True)
 
-    # ✅ Adjust subplot spacing for better alignment
     plt.subplots_adjust(hspace=0.15, wspace=0.15)
 
-    # ✅ Hide the empty bottom-right subplot
     ax_empty.set_xticks([])
     ax_empty.set_yticks([])
     ax_empty.axis("off")
 
     ax.legend(
-        handles=[plt.Line2D([0], [0], marker='o', color='w', markerfacecolor=c, markersize=10, label=n) for n, c in
-                 mutation_colors.items()], title="Mutation Type", loc='upper left', bbox_to_anchor=(1, 1))
+        handles=[plt.Line2D([0], [0], marker='o', color='w', markerfacecolor=c, markersize=12, label=n) for n, c in mutation_colors.items()],
+        title="Mutation Type", loc='upper left', bbox_to_anchor=(1, 1), fontsize=24, title_fontsize=30)
 
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     plt.savefig(output_path, bbox_inches='tight', dpi=900)
