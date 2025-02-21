@@ -45,14 +45,14 @@ def plot_gene_map(ax, genes, gene_y):
         ax.arrow(gene["start"], gene_y, gene["end"] - gene["start"], 0, head_width=0.5, head_length=100,
                  fc='gray', ec='black', length_includes_head=True)
         ax.text((gene["start"] + gene["end"]) / 2, gene_y + y_offset * ((-1) ** i),
-                gene["gene"], ha='center', fontsize=24, rotation=45, va='bottom')
+                gene["gene"], ha='center', fontsize=24, rotation=90, va='bottom')
 
 
 def plot_ancestor_line(ax, ancestor_y, unique_reference_positions, ancestor_phage, mutation_colors):
     """Plots the reference genome line with reference nucleotide positions."""
     ax.plot([0, 6034], [ancestor_y, ancestor_y], linestyle='-', color='black', alpha=0.6, linewidth=1.5)
     ax.scatter(unique_reference_positions['POS'], [ancestor_y] * len(unique_reference_positions),
-               c=unique_reference_positions['REF'].map(mutation_colors), edgecolors='black', alpha=0.8, s=100,
+               c=unique_reference_positions['REF'].map(mutation_colors), edgecolors='black', alpha=0.8, s=200,
                linewidths=0.2)
     ax.text(-600, ancestor_y, ancestor_phage, va='center', fontsize=24, fontweight='bold', ha='right')
 
@@ -63,8 +63,12 @@ def plot_phage_mutations(ax, df, lineage_map, mutation_colors):
         y_pos = lineage_map[lineage]
         ax.plot([0, 6034], [y_pos, y_pos], linestyle='-', color='gray', alpha=0.5)
         ax.scatter(data['POS'], [y_pos] * len(data), c=data['MUT'].map(mutation_colors), label=lineage, alpha=0.8,
-                   edgecolors='black', s=100, linewidths=0.2)
-        ax.text(-600, y_pos, lineage, va='center', fontsize=24, fontweight='bold', ha='right')
+                   edgecolors='black', s=200, linewidths=0.2)
+        ax.text(-600, y_pos, lineage, va='center', fontsize=24, ha='right')
+
+    # Ensure consistent font size for x and y axis ticks
+    ax.xaxis.set_tick_params(labelsize=24)
+    ax.yaxis.set_tick_params(labelsize=24)
 
 
 def plot_mutation_histogram(ax_hist, lineage_map, mutation_counts):
@@ -93,7 +97,7 @@ def plot_stacked_barplot(ax_bar, df, mutation_colors):
     """Plots a stacked barplot for mutation positions, excluding the reference genome."""
     mutation_counts_per_pos = df.groupby(['POS', 'MUT']).size().unstack(fill_value=0)
     bottom_values = None
-    bar_width = 20
+    bar_width = 40
 
     for nucleotide in ['A', 'C', 'G', 'T']:
         if nucleotide in mutation_counts_per_pos.columns:
@@ -166,9 +170,9 @@ def plot_mutations(df: pd.DataFrame, genes: List[Dict], ancestor_phage: str, out
     ax_empty.set_yticks([])
     ax_empty.axis("off")
 
-    ax.legend(
-        handles=[plt.Line2D([0], [0], marker='o', color='w', markerfacecolor=c, markersize=12, label=n) for n, c in mutation_colors.items()],
-        title="Mutation Type", loc='upper left', bbox_to_anchor=(1, 1), fontsize=24, title_fontsize=30)
+    # ax.legend(
+    #     handles=[plt.Line2D([0], [0], marker='o', color='w', markerfacecolor=c, markersize=12, label=n) for n, c in mutation_colors.items()],
+    #     title="Mutation Type", loc='upper left', bbox_to_anchor=(1, 1), fontsize=24, title_fontsize=30)
 
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     plt.savefig(output_path, bbox_inches='tight', dpi=900)
