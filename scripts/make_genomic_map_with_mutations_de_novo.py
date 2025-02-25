@@ -101,7 +101,7 @@ def plot_mutation_histogram(ax_hist, lineage_map, mutation_counts):
 
     ax_hist.set_xlabel("Total Mutations", fontsize=28, fontweight='bold')
     ax_hist.set_ylabel("Phage Lineage", fontsize=28, fontweight='bold')
-    ax_hist.set_title("Mutation Count per Lineage", fontsize=36, fontweight='bold')
+    ax_hist.set_title("Mutation Count per Lineage", fontsize=24, fontweight='bold')
 
     ax_hist.xaxis.set_tick_params(labelsize=24, labelbottom=True)
     ax_hist.yaxis.set_tick_params(labelsize=24)
@@ -111,8 +111,33 @@ def plot_mutation_histogram(ax_hist, lineage_map, mutation_counts):
     ax_hist.grid(axis="x", linestyle="--", alpha=0.5)
 
 
+def plot_de_novo_histogram(ax_de_novo, lineage_map, de_novo_counts):
+    """Plots a histogram of de_novo mutations per lineage."""
+    y_positions = [lineage_map[l] for l in lineage_map.keys()]
+    hist_values = [de_novo_counts.get(l, 0) for l in lineage_map.keys()]  # Default to 0 if no de_novo mutations
+
+    ax_de_novo.barh(y_positions, hist_values, color='red', alpha=0.6, height=0.4, align='center', edgecolor='black')
+
+    for y, count in zip(y_positions, hist_values):
+        ax_de_novo.text(count + 1, y, str(count), va='center', fontsize=14, fontweight='bold')
+
+    ax_de_novo.set_xlabel("De Novo Mutations", fontsize=28, fontweight='bold')
+    ax_de_novo.set_title("De Novo Mutation Count", fontsize=24, fontweight='bold')
+
+    ax_de_novo.xaxis.set_tick_params(labelsize=24, labelbottom=True)
+    ax_de_novo.yaxis.set_tick_params(labelsize=24)
+
+    ax_de_novo.xaxis.set_major_locator(ticker.MultipleLocator(max(1, max(hist_values) // 5)))
+    ax_de_novo.xaxis.set_minor_locator(ticker.AutoMinorLocator(2))
+    ax_de_novo.grid(axis="x", linestyle="--", alpha=0.5)
+
+    # Remove y-axis labels on this histogram (they're on the left plot)
+    ax_de_novo.set_yticks([])
+    ax_de_novo.set_yticklabels([])
+
+
 def plot_mutations(df: pd.DataFrame, genes: List[Dict], ancestor_phage: str, output_path: str) -> None:
-    """Main function to plot the mutations along the genome, with the histogram aligned to the right."""
+    """Main function to plot the mutations along the genome with two histograms (all & de novo mutations)."""
 
     unique_reference_positions = df[['POS', 'REF']].drop_duplicates()
     lineages = list(df['Phage Lineage'].unique())
@@ -123,17 +148,24 @@ def plot_mutations(df: pd.DataFrame, genes: List[Dict], ancestor_phage: str, out
     mutation_counts = df.groupby('Phage Lineage')['POS'].count().to_dict()
     mutation_counts[ancestor_phage] = len(unique_reference_positions)
 
-    fig, axs = plt.subplots(nrows=1, ncols=2, gridspec_kw={'width_ratios': [3, 1]}, figsize=(24, len(lineages) * 0.6 + 6))
+    # Mutation counts for de_novo only
+    de_novo_counts = df[df["mutation_type"] == "de_novo"].groupby("Phage Lineage")["POS"].count().to_dict()
 
-    ax, ax_hist = axs
-    ax_hist.sharey(ax)  # Align hist plot with left plot
+    fig, axs = plt.subplots(
+        nrows=1, ncols=3, gridspec_kw={'width_ratios': [3, 1, 1]}, figsize=(30, len(lineages) * 0.6 + 6)
+    )
+
+    ax, ax_hist, ax_de_novo = axs
+    ax_hist.sharey(ax)  # Align first histogram with left plot
+    ax_de_novo.sharey(ax)  # Align second histogram with left plot
 
     plot_gene_map(ax, genes, len(lineages) + 1)
     plot_ancestor_line(ax, lineage_map[ancestor_phage], unique_reference_positions, ancestor_phage, {'A': 'gray'})
     plot_phage_mutations(ax, df, lineage_map)
     plot_mutation_histogram(ax_hist, lineage_map, mutation_counts)
+    plot_de_novo_histogram(ax_de_novo, lineage_map, de_novo_counts)
 
-    plt.subplots_adjust(wspace=0.15)  # Adjust spacing between plots
+    plt.subplots_adjust(wspace=0.2)  # Adjust spacing between plots
 
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     plt.savefig(output_path, bbox_inches='tight', dpi=900)
