@@ -4,7 +4,9 @@ from typing import Dict, List
 import matplotlib
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
+import numpy as np
 import pandas as pd
+import seaborn as sns
 from Bio import SeqIO
 
 matplotlib.use('Agg')
@@ -31,6 +33,35 @@ def extract_lineage_info(df: pd.DataFrame, ancestor_phage: str) -> pd.DataFrame:
     df['Phage Lineage'] = df['combined_id'].apply(lambda x: '.'.join(x.split('.')[1:])[:-4])
     df['Host Bacteria'] = df['Phage Lineage'].apply(lambda x: x.rsplit(ancestor_phage, 1)[0])
     return df
+
+
+def load_infectivity_data(file_path: str) -> pd.DataFrame:
+    """Loads infectivity data, replaces negative values with 0, and creates phage_name."""
+    index_df = pd.read_csv(file_path)
+
+    # Replace negative values in "Index" with 0
+    index_df["Index"] = index_df["Index"].apply(lambda x: max(0, x))
+
+    # Create "phage_name" column
+    index_df["phage_name"] = index_df["strain"] + index_df["phage"] + "L" + index_df["lineage"].astype(str)
+
+    # print("\n🔹 Infectivity Data Before Merging:")
+    # print(index_df.head())
+
+    return index_df
+
+
+def merge_infectivity_data(df: pd.DataFrame, index_df: pd.DataFrame) -> pd.DataFrame:
+    """Merges the infectivity Index into the main df based on Phage Lineage matching phage_name."""
+    # print("\n🔹 Mutation Data Before Merging:")
+    # print(df.head())
+
+    merged_df = df.merge(index_df[["phage_name", "Index"]], left_on="Phage Lineage", right_on="phage_name", how="left")
+
+    # print("\n🔹 Merged Data After Merging Infectivity Index:")
+    # print(merged_df.head())
+
+    return merged_df
 
 
 def parse_genbank(genbank_file: str) -> List[Dict]:
@@ -89,6 +120,51 @@ def plot_phage_mutations(ax, df, lineage_map):
     ax.yaxis.set_tick_params(labelsize=24)
 
 
+def plot_index_heatmap(ax_heatmap, df, lineage_map):
+    """Plots a heatmap of infectivity Index aligned with Phage Lineage using Matplotlib for better integration."""
+
+    # Remove reference genome from heatmap data
+    phage_lineages_only = [l for l in lineage_map.keys() if not l.endswith("_reference")]
+
+    # Extract infectivity index values **excluding reference genome**
+    index_values = df.groupby("Phage Lineage")["Index"].first().reindex(phage_lineages_only).values
+
+    # Convert 1D array to 2D for `imshow()` (n x 1 matrix)
+    index_matrix = np.array(index_values).reshape(-1, 1)
+
+    # Get y-axis positions (without reference genome)
+    y_positions = [lineage_map[l] for l in phage_lineages_only]
+
+    # **🔹 Fix: Ensure the heatmap spans exactly the correct range**
+    extent = [0, 1, min(y_positions) - 0.6, max(y_positions) + 0.5]  # Shift Up
+
+    # **🔹 Corrected Heatmap Placement**
+    im = ax_heatmap.imshow(index_matrix, aspect="auto", cmap="coolwarm", extent=extent, origin="lower")
+
+    # **Ensure correct y-axis ticks** (aligned with other plots)
+    ax_heatmap.set_yticks(y_positions)
+    ax_heatmap.set_yticklabels(phage_lineages_only, fontsize=18)
+
+    # Remove x-axis ticks
+    ax_heatmap.set_xticks([])
+
+    # **Add colorbar manually for better layout**
+    cbar = plt.colorbar(im, ax=ax_heatmap, fraction=0.05, pad=0.05)
+    cbar.ax.tick_params(labelsize=18)
+    cbar.set_label("Infectivity Index", fontsize=20, fontweight="bold")
+
+    # **🔹 Fix: Shift Index Values Next to Their Heatmap Row**
+    for y, value in zip(y_positions, index_values):
+        if not np.isnan(value):  # Avoid plotting NaN values
+            ax_heatmap.text(1.2, y, f"{value:.2f}", ha="left", va="center", fontsize=18, fontweight="bold")
+
+    # **Remove Unnecessary Borders**
+    ax_heatmap.spines["top"].set_visible(False)
+    ax_heatmap.spines["bottom"].set_visible(False)
+    ax_heatmap.spines["left"].set_visible(False)
+    ax_heatmap.spines["right"].set_visible(False)
+
+
 def plot_mutation_histogram(ax_hist, lineage_map, mutation_counts):
     """Plots the histogram of mutation counts per lineage."""
     y_positions = [lineage_map[l] for l in lineage_map.keys()]
@@ -137,12 +213,14 @@ def plot_de_novo_histogram(ax_de_novo, lineage_map, de_novo_counts):
 
 
 def plot_mutations(df: pd.DataFrame, genes: List[Dict], ancestor_phage: str, output_path: str) -> None:
-    """Main function to plot the mutations along the genome with two histograms (all & de novo mutations)."""
+    """Main function to plot the mutations along the genome with histograms and a heatmap."""
 
     unique_reference_positions = df[['POS', 'REF']].drop_duplicates()
     lineages = list(df['Phage Lineage'].unique())
     lineages.insert(0, ancestor_phage)
-    lineage_map = {lineage: i for i, lineage in enumerate(reversed(lineages))}
+
+    # Adjust y-axis spacing to align all elements properly
+    lineage_map = {lineage: i * 3 for i, lineage in enumerate(reversed(lineages))}
     df['Lineage Order'] = df['Phage Lineage'].map(lineage_map)
 
     mutation_counts = df.groupby('Phage Lineage')['POS'].count().to_dict()
@@ -151,34 +229,61 @@ def plot_mutations(df: pd.DataFrame, genes: List[Dict], ancestor_phage: str, out
     # Mutation counts for de_novo only
     de_novo_counts = df[df["mutation_type"] == "de_novo"].groupby("Phage Lineage")["POS"].count().to_dict()
 
+    # Create figure layout with 4 columns (Genome Plot | Heatmap | Mutation Hist | De Novo Hist)
     fig, axs = plt.subplots(
-        nrows=1, ncols=3, gridspec_kw={'width_ratios': [3, 1, 1]}, figsize=(30, len(lineages) * 0.6 + 6)
+        nrows=1, ncols=4, gridspec_kw={'width_ratios': [3, 0.8, 1, 1]}, figsize=(35, len(lineages) * 0.6 + 10)
     )
 
-    ax, ax_hist, ax_de_novo = axs
-    ax_hist.sharey(ax)  # Align first histogram with left plot
-    ax_de_novo.sharey(ax)  # Align second histogram with left plot
+    ax, ax_heatmap, ax_hist, ax_de_novo = axs
+    ax_hist.sharey(ax)  # Align mutation histogram with genome map
+    ax_de_novo.sharey(ax)  # Align de_novo mutation histogram with genome map
+    ax_heatmap.sharey(ax)  # Align heatmap with genome map
 
-    plot_gene_map(ax, genes, len(lineages) + 1)
+    # Ensure the gene map appears above all lineages
+    gene_y = max(lineage_map.values()) + 3  # Move higher
+
+    # Adjust position of all subplots to prevent misalignment
+    fig.subplots_adjust(left=0.1, right=0.95, top=1.0, bottom=0.05, wspace=0.4)
+
+    # Ensure heatmap height exactly matches the mutation plot
+    ax_heatmap.set_position([ax_hist.get_position().x0 - 0.1, ax.get_position().y0,
+                             ax_heatmap.get_position().width, ax_hist.get_position().height])
+
+    # Ensure the y-axis includes the genomic map so it is not clipped
+    ax.set_ylim(min(lineage_map.values()) - 2, max(lineage_map.values()) + 6)  # Extend for genomic map
+
+    # Align histograms with mutation plot
+    ax_hist.set_position([ax_hist.get_position().x0, ax.get_position().y0,
+                          ax_hist.get_position().width, ax.get_position().height])
+    ax_de_novo.set_position([ax_de_novo.get_position().x0, ax.get_position().y0,
+                             ax_de_novo.get_position().width, ax.get_position().height])
+
+    # Plot gene map at the **top**
+    plot_gene_map(ax, genes, gene_y)
+
+    # Plot mutations and additional visualizations
     plot_ancestor_line(ax, lineage_map[ancestor_phage], unique_reference_positions, ancestor_phage, {'A': 'gray'})
     plot_phage_mutations(ax, df, lineage_map)
+    plot_index_heatmap(ax_heatmap, df, lineage_map)
     plot_mutation_histogram(ax_hist, lineage_map, mutation_counts)
     plot_de_novo_histogram(ax_de_novo, lineage_map, de_novo_counts)
 
-    plt.subplots_adjust(wspace=0.2)  # Adjust spacing between plots
-
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
-    plt.savefig(output_path, bbox_inches='tight', dpi=900)
+    plt.savefig(output_path, bbox_inches='tight', dpi=300)
     plt.close()
 
 
 if __name__ == "__main__":
-    # File path and sheet name (replace with actual path)
+    # File paths
     wd = "/mnt/c/crassvirales/wallapat_project"
     file_path = f"{wd}/20250213_REF_MUT_analysis.xlsx"
+    infectivity_file = f"{wd}/infectivity_index_P1-P2.csv"
 
     results = f"{wd}/results"
     figures = f"{results}/figures"
+
+    # Load infectivity index data
+    index_df = load_infectivity_data(infectivity_file)
 
     phages = ('P1L1', 'P2L1')
     for ancestor_phage in phages:
@@ -187,7 +292,15 @@ if __name__ == "__main__":
 
         output_file = f"{figures}/{ancestor_phage}_phage_mutations_with_genes_de_novo.png"
 
+        # Load mutation data
         df = load_mutation_data(file_path, sheet_name)
         df = extract_lineage_info(df, ancestor_phage=ancestor_phage)
+
+        # Merge infectivity index
+        df = merge_infectivity_data(df, index_df)
+
+        # Load gene annotations
         genes = parse_genbank(genbank_file)
+
+        # Plot mutations
         plot_mutations(df, genes, f'{ancestor_phage}_reference', output_file)
