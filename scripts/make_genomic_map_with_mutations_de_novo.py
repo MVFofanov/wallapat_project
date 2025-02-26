@@ -149,9 +149,16 @@ def plot_index_heatmap(ax_heatmap, df, lineage_map):
     ax_heatmap.set_xticks([])
 
     # **Add colorbar manually for better layout**
+    # Add colorbar manually for better layout
     cbar = plt.colorbar(im, ax=ax_heatmap, fraction=0.05, pad=0.05)
     cbar.ax.tick_params(labelsize=18)
     cbar.set_label("Infectivity Index", fontsize=20, fontweight="bold")
+
+    # 🔹 Move the legend slightly to the right
+    cbar.ax.set_position([cbar.ax.get_position().x0 + 0.03,  # Shift to the right
+                          cbar.ax.get_position().y0,
+                          cbar.ax.get_position().width,
+                          cbar.ax.get_position().height])
 
     # **🔹 Fix: Shift Index Values Next to Their Heatmap Row**
     for y, value in zip(y_positions, index_values):
