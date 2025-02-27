@@ -1,4 +1,5 @@
 import os
+import re
 from typing import Dict, List
 
 import matplotlib
@@ -29,9 +30,22 @@ def load_mutation_data(file_path: str, sheet_name: str) -> pd.DataFrame:
 
 def extract_lineage_info(df: pd.DataFrame, ancestor_phage: str) -> pd.DataFrame:
     """Extract ancestor phage, phage lineage, and host bacteria from combined_id."""
+
     df['Ancestor Phage'] = df['combined_id'].apply(lambda x: x.split('.')[0])
     df['Phage Lineage'] = df['combined_id'].apply(lambda x: '.'.join(x.split('.')[1:])[:-4])
-    df['Host Bacteria'] = df['Phage Lineage'].apply(lambda x: x.rsplit(ancestor_phage, 1)[0])
+
+    # Regex pattern to extract suffix (e.g., P1L1, P2L5, etc.)
+    suffix_regexp = r'P\d+L\d+$'
+
+    def extract_host_bacteria(lineage):
+        return re.sub(suffix_regexp, '', lineage)  # Removes only the exact suffix
+
+    # Apply the function to extract the correct Host Bacteria name
+    df['Host Bacteria'] = df['Phage Lineage'].apply(extract_host_bacteria)
+
+    # Print first 20 rows to verify the results
+    print(df[['combined_id', 'Phage Lineage', 'Host Bacteria']].head(20))
+
     return df
 
 
@@ -104,6 +118,8 @@ def plot_phage_mutations(ax, df, lineage_map):
     """Plots mutation lines and points for each phage lineage using the mutation_type column for color."""
     mutation_colors = {"de_novo": "red", "ancestor": "black"}
 
+    print("Unique Host Names:", df['Host Bacteria'].unique())
+
     for lineage, data in df.groupby('Phage Lineage'):
         y_pos = lineage_map[lineage]
         ax.plot([0, 6034], [y_pos, y_pos], linestyle='-', color='gray', alpha=0.5)
@@ -111,6 +127,7 @@ def plot_phage_mutations(ax, df, lineage_map):
         # Assign colors based on mutation_type
         colors = data["mutation_type"].map(mutation_colors)
 
+        y_pos = lineage_map[lineage]  # Make sure it uses the new spaced y-positions
         ax.scatter(data['POS'], [y_pos] * len(data), c=colors, label=lineage, alpha=0.8,
                    edgecolors='black', s=200, linewidths=0.2)
         ax.text(-600, y_pos, lineage, va='center', fontsize=24, ha='right')
@@ -133,7 +150,7 @@ def plot_index_heatmap(ax_heatmap, df, lineage_map):
     index_matrix = np.array(index_values).reshape(-1, 1)
 
     # Get y-axis positions (without reference genome)
-    y_positions = [lineage_map[l] for l in phage_lineages_only]
+    y_positions = [lineage_map[l] for l in phage_lineages_only if l in lineage_map]
 
     # **🔹 Fix: Ensure the heatmap spans exactly the correct range**
     extent = [0, 1, min(y_positions) - 0.6, max(y_positions) + 0.5]  # Shift Up
@@ -174,7 +191,7 @@ def plot_index_heatmap(ax_heatmap, df, lineage_map):
 
 def plot_mutation_histogram(ax_hist, lineage_map, mutation_counts):
     """Plots the histogram of mutation counts per lineage."""
-    y_positions = [lineage_map[l] for l in lineage_map.keys()]
+    y_positions = [lineage_map[l] for l in lineage_map.keys() if l in lineage_map]
     hist_values = [mutation_counts[l] for l in lineage_map.keys()]
 
     ax_hist.barh(y_positions, hist_values, color='gray', alpha=0.6, height=0.4, align='center', edgecolor='black')
@@ -196,7 +213,7 @@ def plot_mutation_histogram(ax_hist, lineage_map, mutation_counts):
 
 def plot_de_novo_histogram(ax_de_novo, lineage_map, de_novo_counts):
     """Plots a histogram of de_novo mutations per lineage."""
-    y_positions = [lineage_map[l] for l in lineage_map.keys()]
+    y_positions = [lineage_map[l] for l in lineage_map.keys() if l in lineage_map]
     hist_values = [de_novo_counts.get(l, 0) for l in lineage_map.keys()]  # Default to 0 if no de_novo mutations
 
     ax_de_novo.barh(y_positions, hist_values, color='red', alpha=0.6, height=0.4, align='center', edgecolor='black')
@@ -227,8 +244,30 @@ def plot_mutations(df: pd.DataFrame, genes: List[Dict], ancestor_phage: str, out
     lineages.insert(0, ancestor_phage)
 
     # Adjust y-axis spacing to align all elements properly
-    lineage_map = {lineage: i * 3 for i, lineage in enumerate(reversed(lineages))}
+    # Get unique Host Bacteria groups
+    host_bacteria_groups = df.groupby(df['Host Bacteria'].str.strip())["Phage Lineage"].unique()
+
+    for host, lineages_in_host in host_bacteria_groups.items():
+        print(f"Host: '{host}' → Lineages: {list(lineages_in_host)}")  # Debugging
+
+    # Initialize lineage map with extra spacing
+    lineage_map = {}
+    y_position = 0
+    extra_space = 8  # Increase extra space to make separation more visible
+
+    for host, lineages_in_host in host_bacteria_groups.items():
+        print(f"Processing Host: {host}")  # Debugging step
+        for lineage in reversed(lineages_in_host):  # Keep the reversed order
+            lineage_map[lineage] = y_position
+            print(f"  Assigned {lineage} → y={y_position}")  # Debugging step
+            y_position += 4  # Increase spacing between lineages for visibility
+        y_position += extra_space  # Extra spacing after each Host Bacteria group
+
+    # Ensure the reference genome is at the top (above all phage lineages)
+    lineage_map[ancestor_phage] = max(lineage_map.values()) + 12  # Extra spacing above all
+
     df['Lineage Order'] = df['Phage Lineage'].map(lineage_map)
+    print("Final Lineage Map:", lineage_map)  # Debugging step
 
     mutation_counts = df.groupby('Phage Lineage')['POS'].count().to_dict()
     mutation_counts[ancestor_phage] = len(unique_reference_positions)
