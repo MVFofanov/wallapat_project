@@ -101,7 +101,7 @@ def plot_gene_map(ax, genes, gene_y):
                  length_includes_head=True, zorder=50)  # ✅ zorder=50 ensures visibility
 
         ax.text((gene["start"] + gene["end"]) / 2, gene_y + y_offset * ((-1) ** i),
-                gene["gene"], ha='center', fontsize=24, rotation=90, va='bottom', zorder=50)  # ✅ Ensure text is on top
+                gene["gene"], ha='center', fontsize=28, rotation=90, va='bottom', zorder=50)  # ✅ Ensure text is on top
 
 
 def plot_ancestor_line(ax, ancestor_y, unique_reference_positions, ancestor_phage, mutation_colors):
@@ -114,7 +114,7 @@ def plot_ancestor_line(ax, ancestor_y, unique_reference_positions, ancestor_phag
     ax.scatter(unique_reference_positions['POS'], [ancestor_y] * len(unique_reference_positions),
                c=ref_colors, edgecolors='black', alpha=0.8, s=300, linewidths=0.3, zorder=50)
 
-    ax.text(-600, ancestor_y, ancestor_phage, va='center', fontsize=20, fontweight='bold', ha='right', zorder=50)
+    ax.text(-600, ancestor_y, ancestor_phage, va='center', fontsize=28, fontweight='bold', ha='right', zorder=50)
 
 
 def plot_phage_mutations(ax, df, lineage_map):
@@ -133,11 +133,11 @@ def plot_phage_mutations(ax, df, lineage_map):
         y_pos = lineage_map[lineage]  # Make sure it uses the new spaced y-positions
         ax.scatter(data['POS'], [y_pos] * len(data), c=colors, label=lineage, alpha=0.8,
                    edgecolors='black', s=200, linewidths=0.2)
-        ax.text(-600, y_pos, lineage, va='center', fontsize=24, ha='right')
+        ax.text(-600, y_pos, lineage, va='center', fontsize=28, ha='right')
 
     # Ensure consistent font size for x and y axis ticks
-    ax.xaxis.set_tick_params(labelsize=24)
-    ax.yaxis.set_tick_params(labelsize=24)
+    ax.xaxis.set_tick_params(labelsize=28)
+    ax.yaxis.set_tick_params(labelsize=28)
 
 
 def plot_index_heatmap(ax_heatmap, ax_mutation, df, lineage_map, ancestor_phage):
@@ -201,7 +201,7 @@ def plot_index_heatmap(ax_heatmap, ax_mutation, df, lineage_map, ancestor_phage)
     for y, value in zip(y_positions, index_values):
         if not np.isnan(value):  # Avoid printing NaN values
             ax_heatmap.text(1.2, y, f"{value:.2f}", ha="left", va="center",
-                            fontsize=18, fontweight="bold")
+                            fontsize=28, fontweight="bold")
 
 
 def plot_mutation_histogram(ax_hist, lineage_map, mutation_counts):
@@ -212,7 +212,7 @@ def plot_mutation_histogram(ax_hist, lineage_map, mutation_counts):
     ax_hist.barh(y_positions, hist_values, color='gray', alpha=0.6, height=0.4, align='center', edgecolor='black')
 
     for y, count in zip(y_positions, hist_values):
-        ax_hist.text(count + 1, y, str(count), va='center', fontsize=14, fontweight='bold')
+        ax_hist.text(count + 1, y, str(count), va='center', fontsize=28, fontweight='bold')
 
     ax_hist.set_xlabel("Total Mutations", fontsize=28, fontweight='bold')
     ax_hist.set_ylabel("Phage Lineage", fontsize=28, fontweight='bold')
@@ -234,7 +234,7 @@ def plot_de_novo_histogram(ax_de_novo, lineage_map, de_novo_counts):
     ax_de_novo.barh(y_positions, hist_values, color='red', alpha=0.6, height=0.4, align='center', edgecolor='black')
 
     for y, count in zip(y_positions, hist_values):
-        ax_de_novo.text(count + 1, y, str(count), va='center', fontsize=14, fontweight='bold')
+        ax_de_novo.text(count + 1, y, str(count), va='center', fontsize=28, fontweight='bold')
 
     ax_de_novo.set_xlabel("De Novo Mutations", fontsize=28, fontweight='bold')
     ax_de_novo.set_title("De Novo Mutation Count", fontsize=24, fontweight='bold')
