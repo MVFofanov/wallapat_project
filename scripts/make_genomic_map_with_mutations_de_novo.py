@@ -44,7 +44,7 @@ def extract_lineage_info(df: pd.DataFrame, ancestor_phage: str) -> pd.DataFrame:
     df['Host Bacteria'] = df['Phage Lineage'].apply(extract_host_bacteria)
 
     # Print first 20 rows to verify the results
-    print(df[['combined_id', 'Phage Lineage', 'Host Bacteria']].head(20))
+    # print(df[['combined_id', 'Phage Lineage', 'Host Bacteria']].head(20))
 
     return df
 
@@ -92,26 +92,29 @@ def parse_genbank(genbank_file: str) -> List[Dict]:
 
 
 def plot_gene_map(ax, genes, gene_y):
-    """Plots the gene annotation map."""
+    print("Plotting gene map at y=", gene_y)  # Debugging
     y_offset = 0.6
+
     for i, gene in enumerate(genes):
-        ax.arrow(gene["start"], gene_y, gene["end"] - gene["start"], 0, head_width=0.5, head_length=100,
-                 fc='gray', ec='black', length_includes_head=True)
+        ax.arrow(gene["start"], gene_y, gene["end"] - gene["start"], 0,
+                 head_width=2, head_length=100, fc='gray', ec='black',
+                 length_includes_head=True, zorder=50)  # ✅ zorder=50 ensures visibility
+
         ax.text((gene["start"] + gene["end"]) / 2, gene_y + y_offset * ((-1) ** i),
-                gene["gene"], ha='center', fontsize=24, rotation=90, va='bottom')
+                gene["gene"], ha='center', fontsize=24, rotation=90, va='bottom', zorder=50)  # ✅ Ensure text is on top
 
 
 def plot_ancestor_line(ax, ancestor_y, unique_reference_positions, ancestor_phage, mutation_colors):
-    """Plots the reference genome line with reference nucleotide positions."""
-    ax.plot([0, 6034], [ancestor_y, ancestor_y], linestyle='-', color='black', alpha=0.6, linewidth=1.5)
+    print(f"Plotting ancestor line at y={ancestor_y}")
 
-    # Ensure REF values are mapped properly, replace NaN with default color
-    ref_colors = unique_reference_positions['REF'].map(mutation_colors).fillna('gray')
+    ax.plot([0, 6034], [ancestor_y, ancestor_y], linestyle='-', color='black', alpha=0.8, linewidth=3, zorder=50)
+
+    ref_colors = unique_reference_positions['REF'].map(mutation_colors).fillna('black')
 
     ax.scatter(unique_reference_positions['POS'], [ancestor_y] * len(unique_reference_positions),
-               c=ref_colors, edgecolors='black', alpha=0.8, s=200, linewidths=0.2)
+               c=ref_colors, edgecolors='black', alpha=0.8, s=300, linewidths=0.3, zorder=50)
 
-    ax.text(-600, ancestor_y, ancestor_phage, va='center', fontsize=24, fontweight='bold', ha='right')
+    ax.text(-600, ancestor_y, ancestor_phage, va='center', fontsize=20, fontweight='bold', ha='right', zorder=50)
 
 
 def plot_phage_mutations(ax, df, lineage_map):
@@ -270,7 +273,7 @@ def plot_mutations(df: pd.DataFrame, genes: List[Dict], ancestor_phage: str, out
         y_position += extra_space  # Extra spacing
 
     # 🔹 **Ensure the reference genome is at the top**
-    lineage_map[ancestor_phage] = max(lineage_map.values()) + 12  # Move reference genome higher
+    lineage_map[ancestor_phage] = max(lineage_map.values()) + 3  # Move it closer
 
     df['Lineage Order'] = df['Phage Lineage'].map(lineage_map)
 
@@ -291,10 +294,11 @@ def plot_mutations(df: pd.DataFrame, genes: List[Dict], ancestor_phage: str, out
     ax_heatmap.sharey(ax)
 
     # 🔹 **Ensure the gene map appears above all lineages**
-    gene_y = max(lineage_map.values()) + 6  # Move genomic map higher
+    gene_y = max(lineage_map.values()) + 5  # Move genomic map higher
 
     # 🔹 **Ensure y-axis includes genomic map so it is not clipped**
-    ax.set_ylim(min(lineage_map.values()) - 2, gene_y + 3)  # Extend ylim for genomic map visibility
+    # ax.set_ylim(min(lineage_map.values()) - 5, max(lineage_map.values()) + 15)
+    ax.set_ylim(-5, gene_y + 5)
 
     # 🔹 **Fix subplot positions**
     fig.subplots_adjust(left=0.1, right=0.95, top=1.0, bottom=0.05, wspace=0.4)
@@ -307,20 +311,38 @@ def plot_mutations(df: pd.DataFrame, genes: List[Dict], ancestor_phage: str, out
                              ax_de_novo.get_position().width, ax.get_position().height])
 
     # 🔹 **Fix 1: Draw Genomic Map First**
-    plot_gene_map(ax, genes, gene_y)
+    # plot_gene_map(ax, genes, gene_y)
 
     # 🔹 **Fix 2: Ensure Reference Genome with Mutations is Drawn**
-    plot_ancestor_line(ax, lineage_map[ancestor_phage], unique_reference_positions, ancestor_phage, {'A': 'gray'})
+    ancestor_y = lineage_map[ancestor_phage]  # Explicitly define y-position
+    # plot_ancestor_line(ax, ancestor_y, unique_reference_positions, ancestor_phage, {'A': 'gray'})
 
-    # 🔹 **Fix 3: Ensure Phage Mutations are Drawn**
+    # 🔹 Ensure Phage Mutations are Drawn
     plot_phage_mutations(ax, df, lineage_map)
 
-    # 🔹 **Fix 4: Ensure Heatmap is Drawn Correctly**
+    # 🔹 Ensure Heatmap is Drawn Correctly
     plot_index_heatmap(ax_heatmap, ax, df, lineage_map, ancestor_phage)
 
-    # 🔹 **Fix 5: Ensure Histograms are Drawn Correctly**
+    # 🔹 Ensure Histograms are Drawn Correctly
     plot_mutation_histogram(ax_hist, lineage_map, mutation_counts)
     plot_de_novo_histogram(ax_de_novo, lineage_map, de_novo_counts)
+
+    # ✅ Ensure Gene Map and Reference Genome Appear Last
+    # plot_gene_map(ax, genes, gene_y)  # ✅ Draw gene map last
+    # plot_ancestor_line(ax, ancestor_y, unique_reference_positions, ancestor_phage,
+    #                    {'A': 'blue'})  # ✅ Ensure mutations appear
+
+    # ✅ Plot the reference genome and gene map last to ensure they are visible
+    plot_gene_map(ax, genes, gene_y)
+    plot_ancestor_line(ax, ancestor_y, unique_reference_positions, ancestor_phage, {'A': 'black'})
+
+    # ✅ Re-set y-axis to ensure visibility
+    ax.set_ylim(-5, gene_y + 5)
+    ax.set_yticks([])
+
+    print("Gene Y:", gene_y)
+    print("Ancestor Y:", ancestor_y)
+    print("Lineage Map:", lineage_map)
 
     # 🔹 **Ensure output directory exists and save**
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
