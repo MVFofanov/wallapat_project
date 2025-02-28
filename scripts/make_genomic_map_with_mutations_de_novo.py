@@ -157,7 +157,7 @@ def plot_index_heatmap(ax_heatmap, ax_mutation, df, lineage_map, ancestor_phage)
 
     # 🔹 **Fix: Create Correct `y_edges` for pcolormesh**
     fixed_height = 4  # Matches mutation plot row height
-    y_edges = np.concatenate([[y_positions[0] - fixed_height / 2], y_positions + fixed_height / 2])
+    y_edges = np.concatenate([[y_positions[0] - fixed_height / 2 - 2], y_positions + fixed_height / 2 - 1])
 
     # 🚀 **Ensure y_edges.shape == index_matrix.shape[0] + 1**
     expected_shape = index_matrix.shape[0] + 1
