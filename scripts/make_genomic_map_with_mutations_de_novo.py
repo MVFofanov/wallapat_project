@@ -117,7 +117,7 @@ def plot_ancestor_line(ax, ancestor_y, unique_reference_positions, ancestor_phag
     ax.text(-600, ancestor_y, ancestor_phage, va='center', fontsize=28, fontweight='bold', ha='right', zorder=50)
 
 
-def plot_phage_mutations(ax, df, lineage_map):
+def plot_phage_mutations(ax, df, lineage_map, first_lineage_per_host):
     """Plots mutation lines and points for each phage lineage using the mutation_type column for color."""
     mutation_colors = {"de_novo": "red", "ancestor": "black"}
 
@@ -134,7 +134,8 @@ def plot_phage_mutations(ax, df, lineage_map):
 
         for pos, color in zip(data['POS'], colors):
             ax.vlines(x=pos, ymin=y_pos - 0.4, ymax=y_pos + 0.4, color=color, linewidth=2, alpha=0.9)
-        ax.text(-600, y_pos, lineage, va='center', fontsize=28, ha='right')
+        if lineage in first_lineage_per_host:
+            ax.text(-600, y_pos, first_lineage_per_host[lineage], va='center', fontsize=28, ha='right')
 
     # Ensure consistent font size for x and y axis ticks
     ax.xaxis.set_tick_params(labelsize=28)
@@ -170,7 +171,7 @@ def plot_stacked_mutation_histogram(ax, lineage_map, mutation_counts, de_novo_co
     ax.legend(fontsize=20)
 
 
-def plot_mutations(df: pd.DataFrame, genes: List[Dict], ancestor_phage: str, output_path: str) -> None:
+def plot_mutations(df: pd.DataFrame, genes: List[Dict], ancestor_phage: str, output_path: str, keep_lineage_name: bool = False) -> None:
     """Main function to plot the mutations along the genome with histograms and a heatmap."""
 
     lineages = list(df['Phage Lineage'].unique())  # Do NOT include the ancestor
@@ -190,7 +191,21 @@ def plot_mutations(df: pd.DataFrame, genes: List[Dict], ancestor_phage: str, out
             y_position += 1
         y_position += extra_space  # Extra spacing
 
+    first_lineage_per_host = {}
+    for host, lineages_in_host in host_bacteria_groups.items():
+        if len(lineages_in_host) > 0:
+            first_lineage_per_host[lineages_in_host[0]] = host
+
     gene_y = max(lineage_map.values()) + 3
+
+    suffix_regexp = r'P\d+L\d+$'
+    lineage_labels = {}
+
+    for lineage in lineage_map:
+        if keep_lineage_name:
+            lineage_labels[lineage] = lineage
+        else:
+            lineage_labels[lineage] = re.sub(suffix_regexp, '', lineage)
 
     df['Lineage Order'] = df['Phage Lineage'].map(lineage_map)
 
@@ -214,7 +229,7 @@ def plot_mutations(df: pd.DataFrame, genes: List[Dict], ancestor_phage: str, out
                           ax_hist.get_position().width, ax.get_position().height])
 
     # 🔹 Ensure Phage Mutations are Drawn
-    plot_phage_mutations(ax, df, lineage_map)
+    plot_phage_mutations(ax, df, lineage_map, first_lineage_per_host)
 
     # 🔹 Ensure Histograms are Drawn Correctly
     plot_stacked_mutation_histogram(ax_hist, lineage_map, mutation_counts, de_novo_counts)
