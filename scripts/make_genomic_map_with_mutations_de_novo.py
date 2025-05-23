@@ -91,6 +91,12 @@ def parse_genbank(genbank_file: str) -> List[Dict]:
     return genes
 
 
+def get_genome_length(genbank_file: str) -> int:
+    """Returns the full genome length from a GenBank file."""
+    for record in SeqIO.parse(genbank_file, "genbank"):
+        return len(record.seq)
+
+
 def plot_gene_map(ax, genes, gene_y):
     print("Plotting gene map at y=", gene_y)  # Debugging
     y_offset = 2  # 0.6
@@ -120,20 +126,7 @@ def plot_gene_map(ax, genes, gene_y):
         )
 
 
-def plot_ancestor_line(ax, ancestor_y, unique_reference_positions, ancestor_phage, mutation_colors):
-    print(f"Plotting ancestor line at y={ancestor_y}")
-
-    ax.plot([0, 6034], [ancestor_y, ancestor_y], linestyle='-', color='black', alpha=0.8, linewidth=3, zorder=50)
-
-    ref_colors = unique_reference_positions['REF'].map(mutation_colors).fillna('black')
-
-    ax.scatter(unique_reference_positions['POS'], [ancestor_y] * len(unique_reference_positions),
-               c=ref_colors, edgecolors='black', alpha=0.8, s=300, linewidths=0.3, zorder=50)
-
-    ax.text(-600, ancestor_y, ancestor_phage, va='center', fontsize=28, fontweight='bold', ha='right', zorder=50)
-
-
-def plot_phage_mutations(ax, df, lineage_map, first_lineage_per_host):
+def plot_phage_mutations(ax, df, lineage_map, first_lineage_per_host, genome_length):
     """Plots mutation lines and points for each phage lineage using the mutation_type column for color."""
     mutation_colors = {"de_novo": "red", "ancestor": "black"}
 
@@ -141,7 +134,7 @@ def plot_phage_mutations(ax, df, lineage_map, first_lineage_per_host):
 
     for lineage, data in df.groupby('Phage Lineage'):
         y_pos = lineage_map[lineage]
-        ax.plot([0, 6034], [y_pos, y_pos], linestyle='-', color='gray', alpha=0.5)
+        ax.plot([0, genome_length], [y_pos, y_pos], linestyle='-', color='gray', alpha=0.5)
 
         # Assign colors based on mutation_type
         colors = data["mutation_type"].map(mutation_colors)
@@ -187,7 +180,7 @@ def plot_stacked_mutation_histogram(ax, lineage_map, mutation_counts, de_novo_co
     ax.legend(fontsize=20)
 
 
-def plot_mutations(df: pd.DataFrame, genes: List[Dict], ancestor_phage: str, output_path: str, keep_lineage_name: bool = False) -> None:
+def plot_mutations(df: pd.DataFrame, genes: List[Dict], ancestor_phage: str, genome_length: int, output_path: str, keep_lineage_name: bool = False) -> None:
     """Main function to plot the mutations along the genome with histograms and a heatmap."""
 
     lineages = list(df['Phage Lineage'].unique())  # Do NOT include the ancestor
@@ -245,7 +238,7 @@ def plot_mutations(df: pd.DataFrame, genes: List[Dict], ancestor_phage: str, out
                           ax_hist.get_position().width, ax.get_position().height])
 
     # 🔹 Ensure Phage Mutations are Drawn
-    plot_phage_mutations(ax, df, lineage_map, first_lineage_per_host)
+    plot_phage_mutations(ax, df, lineage_map, first_lineage_per_host, genome_length)
 
     # 🔹 Ensure Histograms are Drawn Correctly
     plot_stacked_mutation_histogram(ax_hist, lineage_map, mutation_counts, de_novo_counts)
@@ -295,6 +288,7 @@ if __name__ == "__main__":
 
         # Load gene annotations
         genes = parse_genbank(genbank_file)
+        genome_length = get_genome_length(genbank_file)
 
         # Plot mutations
-        plot_mutations(df, genes, f'{ancestor_phage}_reference', output_file)
+        plot_mutations(df, genes, f'{ancestor_phage}_reference', genome_length, output_file)
