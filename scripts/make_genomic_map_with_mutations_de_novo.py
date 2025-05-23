@@ -223,7 +223,7 @@ def plot_mutations(df: pd.DataFrame, genes: List[Dict], ancestor_phage: str, out
     ax.set_ylim(-5, max(lineage_map.values()) + 3)
 
     # 🔹 **Fix subplot positions**
-    fig.subplots_adjust(left=0.1, right=0.95, top=1.0, bottom=0.05, wspace=0.4)
+    fig.subplots_adjust(left=0.1, right=0.95, top=1.0, bottom=0.05, wspace=0.1)
 
     ax_hist.set_position([ax_hist.get_position().x0, ax.get_position().y0,
                           ax_hist.get_position().width, ax.get_position().height])
