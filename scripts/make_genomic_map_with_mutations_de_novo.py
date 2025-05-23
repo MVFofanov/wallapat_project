@@ -131,8 +131,9 @@ def plot_phage_mutations(ax, df, lineage_map):
         colors = data["mutation_type"].map(mutation_colors)
 
         y_pos = lineage_map[lineage]  # Make sure it uses the new spaced y-positions
-        ax.scatter(data['POS'], [y_pos] * len(data), c=colors, label=lineage, alpha=0.8,
-                   edgecolors='black', s=200, linewidths=0.2)
+
+        for pos, color in zip(data['POS'], colors):
+            ax.vlines(x=pos, ymin=y_pos - 0.4, ymax=y_pos + 0.4, color=color, linewidth=2, alpha=0.9)
         ax.text(-600, y_pos, lineage, va='center', fontsize=28, ha='right')
 
     # Ensure consistent font size for x and y axis ticks
