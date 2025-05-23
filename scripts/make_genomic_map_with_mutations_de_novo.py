@@ -13,6 +13,21 @@ matplotlib.use('Agg')
 os.environ["QT_QPA_PLATFORM"] = "offscreen"
 
 
+FUNCTION_COLORS = {
+    "connector": "#5A5A5A",
+    "DNA, RNA and nucleotide metabolism": "#f000ff",
+    "head and packaging": "#ff008d",
+    "integration and excision": "#E0B0FF",
+    "lysis": "#001eff",
+    "moron, auxiliary metabolic gene and host takeover": "#8900ff",
+    "other": "#4deeea",
+    "tail": "#74ee15",
+    "transcription regulation": "#ffe700",
+    "unknown": "#AAAAAA",
+    "unknown function": "#AAAAAA"
+}
+
+
 def load_mutation_data(file_path: str, sheet_name: str) -> pd.DataFrame:
     """Loads the mutation data from an Excel file and calculates mutation-related columns."""
     df = pd.read_excel(file_path, sheet_name=sheet_name)
@@ -76,8 +91,8 @@ def merge_infectivity_data(df: pd.DataFrame, index_df: pd.DataFrame) -> pd.DataF
     return merged_df
 
 
-def parse_genbank(genbank_file: str) -> List[Dict[str, Union[str, int]]]:
-    """Parses a GenBank file to extract gene annotations."""
+def parse_genbank(genbank_file: str) -> List[Dict[str, str]]:
+    """Parses a GenBank file to extract gene annotations and their functions."""
     genes = []
     for record in SeqIO.parse(genbank_file, "genbank"):
         for feature in record.features:
@@ -85,7 +100,13 @@ def parse_genbank(genbank_file: str) -> List[Dict[str, Union[str, int]]]:
                 start = int(feature.location.start)
                 end = int(feature.location.end)
                 gene_name = feature.qualifiers.get("product", ["unknown"])[0]
-                genes.append({"start": start, "end": end, "gene": gene_name})
+                function = feature.qualifiers.get("function", ["unknown function"])[0]
+                genes.append({
+                    "start": start,
+                    "end": end,
+                    "gene": gene_name,
+                    "function": function
+                })
     return genes
 
 
@@ -102,6 +123,11 @@ def plot_gene_map(ax: matplotlib.axes.Axes, genes: List[Dict[str, Union[str, int
         gene_start, gene_end = gene["start"], gene["end"]
         gene_mid = (gene_start + gene_end) / 2
 
+        function = gene.get("function", "unknown function").strip().lower()
+
+        # Normalize the function key to match dictionary
+        color = FUNCTION_COLORS.get(function, FUNCTION_COLORS["unknown"])
+
         ax.arrow(
             gene_start, gene_y,
             gene_end - gene_start, 0,
@@ -109,7 +135,7 @@ def plot_gene_map(ax: matplotlib.axes.Axes, genes: List[Dict[str, Union[str, int
             head_length=120,
             head_width=1,
             length_includes_head=True,
-            fc='gray', ec='black', zorder=50
+            fc=color, ec='black', zorder=50
         )
 
         ax.text(
