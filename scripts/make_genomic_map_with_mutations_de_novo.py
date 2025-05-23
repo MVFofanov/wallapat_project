@@ -167,7 +167,7 @@ def plot_stacked_mutation_histogram(ax: matplotlib.axes.Axes,
     ax.barh(y_positions, de_novo_values, color='red', alpha=0.8, height=0.5,
             edgecolor='black', label='De Novo')
     ax.barh(y_positions, ancestor_values, left=de_novo_values, color='gray',
-            alpha=0.6, height=0.5, edgecolor='black', label='Total')
+            alpha=0.6, height=0.5, edgecolor='black', label='Ancestral')
 
     # Add labels
     for y, t in zip(y_positions, total_values):
@@ -175,7 +175,7 @@ def plot_stacked_mutation_histogram(ax: matplotlib.axes.Axes,
 
     ax.set_xlabel("Mutation Count", fontsize=28, fontweight='bold')
     ax.set_ylabel("Phage Lineage", fontsize=28, fontweight='bold')
-    ax.set_title("De Novo vs. Total Mutations", fontsize=24, fontweight='bold')
+    ax.set_title("De Novo vs. Ancestral Mutations", fontsize=24, fontweight='bold')
 
     ax.xaxis.set_tick_params(labelsize=24)
     ax.yaxis.set_tick_params(labelsize=24)
