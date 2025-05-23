@@ -205,51 +205,86 @@ def plot_phage_mutations(ax, df, lineage_map):
 #                             fontsize=28, fontweight="bold")
 
 
-def plot_mutation_histogram(ax_hist, lineage_map, mutation_counts):
-    """Plots the histogram of mutation counts per lineage."""
-    y_positions = [lineage_map[l] for l in lineage_map.keys() if l in lineage_map]
-    hist_values = [mutation_counts[l] for l in lineage_map.keys()]
+# def plot_mutation_histogram(ax_hist, lineage_map, mutation_counts):
+#     """Plots the histogram of mutation counts per lineage."""
+#     y_positions = [lineage_map[l] for l in lineage_map.keys() if l in lineage_map]
+#     hist_values = [mutation_counts[l] for l in lineage_map.keys()]
+#
+#     ax_hist.barh(y_positions, hist_values, color='gray', alpha=0.6, height=0.4, align='center', edgecolor='black')
+#
+#     for y, count in zip(y_positions, hist_values):
+#         ax_hist.text(count + 1, y, str(count), va='center', fontsize=28, fontweight='bold')
+#
+#     ax_hist.set_xlabel("Total Mutations", fontsize=28, fontweight='bold')
+#     ax_hist.set_ylabel("Phage Lineage", fontsize=28, fontweight='bold')
+#     ax_hist.set_title("Mutation Count per Lineage", fontsize=24, fontweight='bold')
+#
+#     ax_hist.xaxis.set_tick_params(labelsize=24, labelbottom=True)
+#     ax_hist.yaxis.set_tick_params(labelsize=24)
+#
+#     ax_hist.xaxis.set_major_locator(ticker.MultipleLocator(max(1, max(hist_values) // 5)))
+#     ax_hist.xaxis.set_minor_locator(ticker.AutoMinorLocator(2))
+#     ax_hist.grid(axis="x", linestyle="--", alpha=0.5)
+#
+#
+# def plot_de_novo_histogram(ax_de_novo, lineage_map, de_novo_counts):
+#     """Plots a histogram of de_novo mutations per lineage."""
+#     y_positions = [lineage_map[l] for l in lineage_map.keys() if l in lineage_map]
+#     hist_values = [de_novo_counts.get(l, 0) for l in lineage_map.keys()]  # Default to 0 if no de_novo mutations
+#
+#     ax_de_novo.barh(y_positions, hist_values, color='red', alpha=0.6, height=0.4, align='center', edgecolor='black')
+#
+#     for y, count in zip(y_positions, hist_values):
+#         ax_de_novo.text(count + 1, y, str(count), va='center', fontsize=28, fontweight='bold')
+#
+#     ax_de_novo.set_xlabel("De Novo Mutations", fontsize=28, fontweight='bold')
+#     ax_de_novo.set_title("De Novo Mutation Count", fontsize=24, fontweight='bold')
+#
+#     ax_de_novo.xaxis.set_tick_params(labelsize=24, labelbottom=True)
+#     ax_de_novo.yaxis.set_tick_params(labelsize=24)
+#
+#     ax_de_novo.xaxis.set_major_locator(ticker.MultipleLocator(max(1, max(hist_values) // 5)))
+#     ax_de_novo.xaxis.set_minor_locator(ticker.AutoMinorLocator(2))
+#     ax_de_novo.grid(axis="x", linestyle="--", alpha=0.5)
+#
+#     # Remove y-axis labels on this histogram (they're on the left plot)
+#     ax_de_novo.set_yticks([])
+#     ax_de_novo.set_yticklabels([])
 
-    ax_hist.barh(y_positions, hist_values, color='gray', alpha=0.6, height=0.4, align='center', edgecolor='black')
 
-    for y, count in zip(y_positions, hist_values):
-        ax_hist.text(count + 1, y, str(count), va='center', fontsize=28, fontweight='bold')
+def plot_stacked_mutation_histogram(ax, lineage_map, mutation_counts, de_novo_counts):
+    y_positions = [lineage_map[l] for l in lineage_map]
+    total_values = [mutation_counts.get(l, 0) for l in lineage_map]
+    de_novo_values = [de_novo_counts.get(l, 0) for l in lineage_map]
+    ancestor_values = [t - d for t, d in zip(total_values, de_novo_values)]
 
-    ax_hist.set_xlabel("Total Mutations", fontsize=28, fontweight='bold')
-    ax_hist.set_ylabel("Phage Lineage", fontsize=28, fontweight='bold')
-    ax_hist.set_title("Mutation Count per Lineage", fontsize=24, fontweight='bold')
+    # # Plot ancestor portion first (base of stacked bar)
+    # ax.barh(y_positions, ancestor_values, color='gray', alpha=0.6, height=0.5, edgecolor='black', label='Ancestor')
+    #
+    # # Overlay de novo portion
+    # ax.barh(y_positions, de_novo_values, left=ancestor_values, color='red', alpha=0.8, height=0.5, edgecolor='black', label='De Novo')
 
-    ax_hist.xaxis.set_tick_params(labelsize=24, labelbottom=True)
-    ax_hist.yaxis.set_tick_params(labelsize=24)
+    ax.barh(y_positions, de_novo_values, color='red', alpha=0.8, height=0.5,
+            edgecolor='black', label='De Novo')
+    ax.barh(y_positions, ancestor_values, left=de_novo_values, color='gray',
+            alpha=0.6, height=0.5, edgecolor='black', label='Ancestor')
 
-    ax_hist.xaxis.set_major_locator(ticker.MultipleLocator(max(1, max(hist_values) // 5)))
-    ax_hist.xaxis.set_minor_locator(ticker.AutoMinorLocator(2))
-    ax_hist.grid(axis="x", linestyle="--", alpha=0.5)
+    # Add labels
+    for y, t in zip(y_positions, total_values):
+        ax.text(t + 0.5, y, str(t), va='center', fontsize=20)
 
+    ax.set_xlabel("Mutation Count", fontsize=28, fontweight='bold')
+    ax.set_ylabel("Phage Lineage", fontsize=28, fontweight='bold')
+    ax.set_title("Total vs. De Novo Mutations", fontsize=24, fontweight='bold')
 
-def plot_de_novo_histogram(ax_de_novo, lineage_map, de_novo_counts):
-    """Plots a histogram of de_novo mutations per lineage."""
-    y_positions = [lineage_map[l] for l in lineage_map.keys() if l in lineage_map]
-    hist_values = [de_novo_counts.get(l, 0) for l in lineage_map.keys()]  # Default to 0 if no de_novo mutations
+    ax.xaxis.set_tick_params(labelsize=24)
+    ax.yaxis.set_tick_params(labelsize=24)
 
-    ax_de_novo.barh(y_positions, hist_values, color='red', alpha=0.6, height=0.4, align='center', edgecolor='black')
+    ax.xaxis.set_major_locator(ticker.MultipleLocator(max(1, max(total_values) // 5)))
+    ax.xaxis.set_minor_locator(ticker.AutoMinorLocator(2))
+    ax.grid(axis="x", linestyle="--", alpha=0.5)
 
-    for y, count in zip(y_positions, hist_values):
-        ax_de_novo.text(count + 1, y, str(count), va='center', fontsize=28, fontweight='bold')
-
-    ax_de_novo.set_xlabel("De Novo Mutations", fontsize=28, fontweight='bold')
-    ax_de_novo.set_title("De Novo Mutation Count", fontsize=24, fontweight='bold')
-
-    ax_de_novo.xaxis.set_tick_params(labelsize=24, labelbottom=True)
-    ax_de_novo.yaxis.set_tick_params(labelsize=24)
-
-    ax_de_novo.xaxis.set_major_locator(ticker.MultipleLocator(max(1, max(hist_values) // 5)))
-    ax_de_novo.xaxis.set_minor_locator(ticker.AutoMinorLocator(2))
-    ax_de_novo.grid(axis="x", linestyle="--", alpha=0.5)
-
-    # Remove y-axis labels on this histogram (they're on the left plot)
-    ax_de_novo.set_yticks([])
-    ax_de_novo.set_yticklabels([])
+    ax.legend(fontsize=20)
 
 
 def plot_mutations(df: pd.DataFrame, genes: List[Dict], ancestor_phage: str, output_path: str) -> None:
@@ -289,11 +324,16 @@ def plot_mutations(df: pd.DataFrame, genes: List[Dict], ancestor_phage: str, out
     #     nrows=1, ncols=4, gridspec_kw={'width_ratios': [3, 0.8, 1, 1]}, figsize=(35, len(lineages) * 0.6 + 10)
     # )
 
-    fig, axs = plt.subplots(nrows=1, ncols=3, gridspec_kw={'width_ratios': [3, 1, 1]},
-                            figsize=(35, len(lineages) * 0.6 + 10))
-    ax, ax_hist, ax_de_novo = axs
+    # fig, axs = plt.subplots(nrows=1, ncols=3, gridspec_kw={'width_ratios': [3, 1, 1]},
+    #                         figsize=(35, len(lineages) * 0.6 + 10))
+    # ax, ax_hist, ax_de_novo = axs
+
+    fig, axs = plt.subplots(nrows=1, ncols=2, gridspec_kw={'width_ratios': [3, 1]},
+                            figsize=(30, len(lineages) * 0.6 + 10))
+    ax, ax_hist = axs
+
     ax_hist.sharey(ax)
-    ax_de_novo.sharey(ax)
+    # ax_de_novo.sharey(ax)
     # ax_heatmap.sharey(ax)
 
     # 🔹 **Ensure the gene map appears above all lineages**
@@ -310,8 +350,8 @@ def plot_mutations(df: pd.DataFrame, genes: List[Dict], ancestor_phage: str, out
     #                          ax_heatmap.get_position().width, ax.get_position().height])
     ax_hist.set_position([ax_hist.get_position().x0, ax.get_position().y0,
                           ax_hist.get_position().width, ax.get_position().height])
-    ax_de_novo.set_position([ax_de_novo.get_position().x0, ax.get_position().y0,
-                             ax_de_novo.get_position().width, ax.get_position().height])
+    # ax_de_novo.set_position([ax_de_novo.get_position().x0, ax.get_position().y0,
+    #                          ax_de_novo.get_position().width, ax.get_position().height])
 
     # 🔹 **Fix 1: Draw Genomic Map First**
     # plot_gene_map(ax, genes, gene_y)
@@ -327,8 +367,10 @@ def plot_mutations(df: pd.DataFrame, genes: List[Dict], ancestor_phage: str, out
     # plot_index_heatmap(ax_heatmap, ax, df, lineage_map, ancestor_phage)
 
     # 🔹 Ensure Histograms are Drawn Correctly
-    plot_mutation_histogram(ax_hist, lineage_map, mutation_counts)
-    plot_de_novo_histogram(ax_de_novo, lineage_map, de_novo_counts)
+    plot_stacked_mutation_histogram(ax_hist, lineage_map, mutation_counts, de_novo_counts)
+
+    # plot_mutation_histogram(ax_hist, lineage_map, mutation_counts)
+    # plot_de_novo_histogram(ax_de_novo, lineage_map, de_novo_counts)
 
     # ✅ Ensure Gene Map and Reference Genome Appear Last
     # plot_gene_map(ax, genes, gene_y)  # ✅ Draw gene map last
