@@ -93,26 +93,31 @@ def parse_genbank(genbank_file: str) -> List[Dict]:
 
 def plot_gene_map(ax, genes, gene_y):
     print("Plotting gene map at y=", gene_y)  # Debugging
-    y_offset = 0.6
+    y_offset = 2  # 0.6
 
     arrow_body_width = 1.5  # thicker shaft
     arrow_head_length = 240  # same head
     arrow_head_width = 4  # same width as before, or tweak if needed
 
     for i, gene in enumerate(genes):
+        gene_start, gene_end = gene["start"], gene["end"]
+        gene_mid = (gene_start + gene_end) / 2
 
         ax.arrow(
-            gene["start"], gene_y,
-            gene["end"] - gene["start"], 0,
-            width=arrow_body_width,
-            head_length=arrow_head_length,
-            head_width=arrow_head_width,
+            gene_start, gene_y,
+            gene_end - gene_start, 0,
+            width=1.5,
+            head_length=120,
+            head_width=3,
             length_includes_head=True,
             fc='gray', ec='black', zorder=50
         )
 
-        ax.text((gene["start"] + gene["end"]) / 2, gene_y + y_offset * ((-1) ** i),
-                gene["gene"], ha='center', fontsize=28, rotation=90, va='bottom', zorder=50)  # ✅ Ensure text is on top
+        ax.text(
+            gene_mid, gene_y + 2,  # fixed offset
+            gene["gene"], ha='center', fontsize=28, rotation=90,
+            va='bottom', zorder=50
+        )
 
 
 def plot_ancestor_line(ax, ancestor_y, unique_reference_positions, ancestor_phage, mutation_colors):
@@ -162,7 +167,7 @@ def plot_stacked_mutation_histogram(ax, lineage_map, mutation_counts, de_novo_co
     ax.barh(y_positions, de_novo_values, color='red', alpha=0.8, height=0.5,
             edgecolor='black', label='De Novo')
     ax.barh(y_positions, ancestor_values, left=de_novo_values, color='gray',
-            alpha=0.6, height=0.5, edgecolor='black', label='Ancestor')
+            alpha=0.6, height=0.5, edgecolor='black', label='Total')
 
     # Add labels
     for y, t in zip(y_positions, total_values):
@@ -170,7 +175,7 @@ def plot_stacked_mutation_histogram(ax, lineage_map, mutation_counts, de_novo_co
 
     ax.set_xlabel("Mutation Count", fontsize=28, fontweight='bold')
     ax.set_ylabel("Phage Lineage", fontsize=28, fontweight='bold')
-    ax.set_title("Total vs. De Novo Mutations", fontsize=24, fontweight='bold')
+    ax.set_title("De Novo vs. Total Mutations", fontsize=24, fontweight='bold')
 
     ax.xaxis.set_tick_params(labelsize=24)
     ax.yaxis.set_tick_params(labelsize=24)
