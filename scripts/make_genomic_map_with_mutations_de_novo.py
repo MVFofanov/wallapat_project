@@ -291,14 +291,17 @@ def plot_mutations(df: pd.DataFrame, genes: List[Dict], ancestor_phage: str, out
     """Main function to plot the mutations along the genome with histograms and a heatmap."""
 
     unique_reference_positions = df[['POS', 'REF']].drop_duplicates()
-    lineages = list(df['Phage Lineage'].unique())
-    lineages.insert(0, ancestor_phage)  # Ensure reference genome is included
+    # lineages = list(df['Phage Lineage'].unique())
+    # lineages.insert(0, ancestor_phage)  # Ensure reference genome is included
+
+    lineages = list(df['Phage Lineage'].unique())  # Do NOT include the ancestor
 
     # Adjust y-axis spacing to align all elements properly
     host_bacteria_groups = df.groupby(df['Host Bacteria'].str.strip())["Phage Lineage"].unique()
 
     # Initialize lineage map with extra spacing
     lineage_map = {}
+
     y_position = 0
     extra_space = 2  # Extra spacing after each Host Bacteria group
 
@@ -308,13 +311,15 @@ def plot_mutations(df: pd.DataFrame, genes: List[Dict], ancestor_phage: str, out
             y_position += 1
         y_position += extra_space  # Extra spacing
 
+    gene_y = max(lineage_map.values()) + 3
+
     # 🔹 **Ensure the reference genome is at the top**
-    lineage_map[ancestor_phage] = max(lineage_map.values()) + 3  # Move it closer
+    # lineage_map[ancestor_phage] = max(lineage_map.values()) + 3  # Move it closer
 
     df['Lineage Order'] = df['Phage Lineage'].map(lineage_map)
 
     mutation_counts = df.groupby('Phage Lineage')['POS'].count().to_dict()
-    mutation_counts[ancestor_phage] = len(unique_reference_positions)
+    # mutation_counts[ancestor_phage] = len(unique_reference_positions)
 
     # Mutation counts for de_novo only
     de_novo_counts = df[df["mutation_type"] == "de_novo"].groupby("Phage Lineage")["POS"].count().to_dict()
@@ -337,11 +342,13 @@ def plot_mutations(df: pd.DataFrame, genes: List[Dict], ancestor_phage: str, out
     # ax_heatmap.sharey(ax)
 
     # 🔹 **Ensure the gene map appears above all lineages**
-    gene_y = max(lineage_map.values()) + 5  # Move genomic map higher
+    # gene_y = max(lineage_map.values()) + 5  # Move genomic map higher
 
     # 🔹 **Ensure y-axis includes genomic map so it is not clipped**
     # ax.set_ylim(min(lineage_map.values()) - 5, max(lineage_map.values()) + 15)
-    ax.set_ylim(-5, gene_y + 5)
+    # ax.set_ylim(-5, gene_y + 5)
+
+    ax.set_ylim(-5, max(lineage_map.values()) + 3)
 
     # 🔹 **Fix subplot positions**
     fig.subplots_adjust(left=0.1, right=0.95, top=1.0, bottom=0.05, wspace=0.4)
@@ -357,7 +364,7 @@ def plot_mutations(df: pd.DataFrame, genes: List[Dict], ancestor_phage: str, out
     # plot_gene_map(ax, genes, gene_y)
 
     # 🔹 **Fix 2: Ensure Reference Genome with Mutations is Drawn**
-    ancestor_y = lineage_map[ancestor_phage]  # Explicitly define y-position
+    # ancestor_y = lineage_map[ancestor_phage]  # Explicitly define y-position
     # plot_ancestor_line(ax, ancestor_y, unique_reference_positions, ancestor_phage, {'A': 'gray'})
 
     # 🔹 Ensure Phage Mutations are Drawn
@@ -379,14 +386,14 @@ def plot_mutations(df: pd.DataFrame, genes: List[Dict], ancestor_phage: str, out
 
     # ✅ Plot the reference genome and gene map last to ensure they are visible
     plot_gene_map(ax, genes, gene_y)
-    plot_ancestor_line(ax, ancestor_y, unique_reference_positions, ancestor_phage, {'A': 'black'})
+    # plot_ancestor_line(ax, ancestor_y, unique_reference_positions, ancestor_phage, {'A': 'black'})
 
     # ✅ Re-set y-axis to ensure visibility
     ax.set_ylim(-5, gene_y + 5)
     ax.set_yticks([])
 
     print("Gene Y:", gene_y)
-    print("Ancestor Y:", ancestor_y)
+    # print("Ancestor Y:", ancestor_y)
     print("Lineage Map:", lineage_map)
 
     # 🔹 **Ensure output directory exists and save**
