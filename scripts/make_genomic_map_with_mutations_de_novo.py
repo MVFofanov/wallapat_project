@@ -140,68 +140,68 @@ def plot_phage_mutations(ax, df, lineage_map):
     ax.yaxis.set_tick_params(labelsize=28)
 
 
-def plot_index_heatmap(ax_heatmap, ax_mutation, df, lineage_map, ancestor_phage):
-    """Plots a heatmap of infectivity Index aligned with Phage Lineage using pcolormesh and prints values on the right."""
-
-    # Remove reference genome from heatmap
-    phage_lineages_only = [l for l in lineage_map.keys() if l != ancestor_phage]
-
-    # Extract infectivity index values **excluding reference genome**
-    index_values = df.groupby("Phage Lineage")["Index"].first().reindex(phage_lineages_only).values
-
-    # Convert 1D array to 2D for `pcolormesh` (n x 1 matrix)
-    index_matrix = np.array(index_values).reshape(-1, 1)
-
-    # Get y-axis positions (without reference genome)
-    y_positions = np.array([lineage_map[l] for l in phage_lineages_only if l in lineage_map])
-
-    # 🔹 **Fix: Create Correct `y_edges` for pcolormesh**
-    fixed_height = 4  # Matches mutation plot row height
-    y_edges = np.concatenate([[y_positions[0] - fixed_height / 2 - 2], y_positions + fixed_height / 2 - 1])
-
-    # 🚀 **Ensure y_edges.shape == index_matrix.shape[0] + 1**
-    expected_shape = index_matrix.shape[0] + 1
-    if len(y_edges) != expected_shape:
-        print(f"⚠️ Fixing y_edges: {len(y_edges)} → {expected_shape}")
-        y_edges = np.linspace(y_positions[0] - fixed_height / 2,
-                              y_positions[-1] + fixed_height / 2, expected_shape)
-
-    # 🔹 **Apply Corrected Heatmap**
-    cmap = plt.cm.coolwarm
-    c = ax_heatmap.pcolormesh([0, 1], y_edges, index_matrix, cmap=cmap, shading="flat")
-
-    # ✅ **Fix Tick Labels**
-    ax_heatmap.set_yticks(y_positions)  # ✅ Ensure tick marks match mutation plot
-    ax_heatmap.set_yticklabels(phage_lineages_only, fontsize=18)  # ✅ Match other plots
-
-    # Remove x-axis ticks
-    ax_heatmap.set_xticks([])
-
-    # **Fix Heatmap Position to Align with Mutation Plot**
-    ax_heatmap.set_position([
-        ax_heatmap.get_position().x0, ax_mutation.get_position().y0,
-        ax_heatmap.get_position().width, ax_mutation.get_position().height
-    ])
-
-    # **Ensure y-axis matches mutation map**
-    ax_heatmap.set_ylim(y_positions[0] - fixed_height / 2, y_positions[-1] + fixed_height / 2)
-
-    # **Add colorbar manually for better layout**
-    cbar = plt.colorbar(c, ax=ax_heatmap, fraction=0.05, pad=0.05)
-    cbar.ax.tick_params(labelsize=18)
-    cbar.set_label("Infectivity Index", fontsize=20, fontweight="bold")
-
-    # 🔹 **Fix Colorbar Position** 🔹
-    cbar.ax.set_position([cbar.ax.get_position().x0 + 0.03,
-                          cbar.ax.get_position().y0,
-                          cbar.ax.get_position().width,
-                          cbar.ax.get_position().height])
-
-    # **🔹 Add Infectivity Index Values Next to Heatmap 🔹**
-    for y, value in zip(y_positions, index_values):
-        if not np.isnan(value):  # Avoid printing NaN values
-            ax_heatmap.text(1.2, y, f"{value:.2f}", ha="left", va="center",
-                            fontsize=28, fontweight="bold")
+# def plot_index_heatmap(ax_heatmap, ax_mutation, df, lineage_map, ancestor_phage):
+#     """Plots a heatmap of infectivity Index aligned with Phage Lineage using pcolormesh and prints values on the right."""
+#
+#     # Remove reference genome from heatmap
+#     phage_lineages_only = [l for l in lineage_map.keys() if l != ancestor_phage]
+#
+#     # Extract infectivity index values **excluding reference genome**
+#     index_values = df.groupby("Phage Lineage")["Index"].first().reindex(phage_lineages_only).values
+#
+#     # Convert 1D array to 2D for `pcolormesh` (n x 1 matrix)
+#     index_matrix = np.array(index_values).reshape(-1, 1)
+#
+#     # Get y-axis positions (without reference genome)
+#     y_positions = np.array([lineage_map[l] for l in phage_lineages_only if l in lineage_map])
+#
+#     # 🔹 **Fix: Create Correct `y_edges` for pcolormesh**
+#     fixed_height = 4  # Matches mutation plot row height
+#     y_edges = np.concatenate([[y_positions[0] - fixed_height / 2 - 2], y_positions + fixed_height / 2 - 1])
+#
+#     # 🚀 **Ensure y_edges.shape == index_matrix.shape[0] + 1**
+#     expected_shape = index_matrix.shape[0] + 1
+#     if len(y_edges) != expected_shape:
+#         print(f"⚠️ Fixing y_edges: {len(y_edges)} → {expected_shape}")
+#         y_edges = np.linspace(y_positions[0] - fixed_height / 2,
+#                               y_positions[-1] + fixed_height / 2, expected_shape)
+#
+#     # 🔹 **Apply Corrected Heatmap**
+#     cmap = plt.cm.coolwarm
+#     c = ax_heatmap.pcolormesh([0, 1], y_edges, index_matrix, cmap=cmap, shading="flat")
+#
+#     # ✅ **Fix Tick Labels**
+#     ax_heatmap.set_yticks(y_positions)  # ✅ Ensure tick marks match mutation plot
+#     ax_heatmap.set_yticklabels(phage_lineages_only, fontsize=18)  # ✅ Match other plots
+#
+#     # Remove x-axis ticks
+#     ax_heatmap.set_xticks([])
+#
+#     # **Fix Heatmap Position to Align with Mutation Plot**
+#     ax_heatmap.set_position([
+#         ax_heatmap.get_position().x0, ax_mutation.get_position().y0,
+#         ax_heatmap.get_position().width, ax_mutation.get_position().height
+#     ])
+#
+#     # **Ensure y-axis matches mutation map**
+#     ax_heatmap.set_ylim(y_positions[0] - fixed_height / 2, y_positions[-1] + fixed_height / 2)
+#
+#     # **Add colorbar manually for better layout**
+#     cbar = plt.colorbar(c, ax=ax_heatmap, fraction=0.05, pad=0.05)
+#     cbar.ax.tick_params(labelsize=18)
+#     cbar.set_label("Infectivity Index", fontsize=20, fontweight="bold")
+#
+#     # 🔹 **Fix Colorbar Position** 🔹
+#     cbar.ax.set_position([cbar.ax.get_position().x0 + 0.03,
+#                           cbar.ax.get_position().y0,
+#                           cbar.ax.get_position().width,
+#                           cbar.ax.get_position().height])
+#
+#     # **🔹 Add Infectivity Index Values Next to Heatmap 🔹**
+#     for y, value in zip(y_positions, index_values):
+#         if not np.isnan(value):  # Avoid printing NaN values
+#             ax_heatmap.text(1.2, y, f"{value:.2f}", ha="left", va="center",
+#                             fontsize=28, fontweight="bold")
 
 
 def plot_mutation_histogram(ax_hist, lineage_map, mutation_counts):
@@ -284,14 +284,16 @@ def plot_mutations(df: pd.DataFrame, genes: List[Dict], ancestor_phage: str, out
     de_novo_counts = df[df["mutation_type"] == "de_novo"].groupby("Phage Lineage")["POS"].count().to_dict()
 
     # 🔹 **Create figure layout**
-    fig, axs = plt.subplots(
-        nrows=1, ncols=4, gridspec_kw={'width_ratios': [3, 0.8, 1, 1]}, figsize=(35, len(lineages) * 0.6 + 10)
-    )
+    # fig, axs = plt.subplots(
+    #     nrows=1, ncols=4, gridspec_kw={'width_ratios': [3, 0.8, 1, 1]}, figsize=(35, len(lineages) * 0.6 + 10)
+    # )
 
-    ax, ax_heatmap, ax_hist, ax_de_novo = axs
+    fig, axs = plt.subplots(nrows=1, ncols=3, gridspec_kw={'width_ratios': [3, 1, 1]},
+                            figsize=(35, len(lineages) * 0.6 + 10))
+    ax, ax_hist, ax_de_novo = axs
     ax_hist.sharey(ax)
     ax_de_novo.sharey(ax)
-    ax_heatmap.sharey(ax)
+    # ax_heatmap.sharey(ax)
 
     # 🔹 **Ensure the gene map appears above all lineages**
     gene_y = max(lineage_map.values()) + 5  # Move genomic map higher
@@ -303,8 +305,8 @@ def plot_mutations(df: pd.DataFrame, genes: List[Dict], ancestor_phage: str, out
     # 🔹 **Fix subplot positions**
     fig.subplots_adjust(left=0.1, right=0.95, top=1.0, bottom=0.05, wspace=0.4)
 
-    ax_heatmap.set_position([ax_heatmap.get_position().x0, ax.get_position().y0,
-                             ax_heatmap.get_position().width, ax.get_position().height])
+    # ax_heatmap.set_position([ax_heatmap.get_position().x0, ax.get_position().y0,
+    #                          ax_heatmap.get_position().width, ax.get_position().height])
     ax_hist.set_position([ax_hist.get_position().x0, ax.get_position().y0,
                           ax_hist.get_position().width, ax.get_position().height])
     ax_de_novo.set_position([ax_de_novo.get_position().x0, ax.get_position().y0,
@@ -320,8 +322,8 @@ def plot_mutations(df: pd.DataFrame, genes: List[Dict], ancestor_phage: str, out
     # 🔹 Ensure Phage Mutations are Drawn
     plot_phage_mutations(ax, df, lineage_map)
 
-    # 🔹 Ensure Heatmap is Drawn Correctly
-    plot_index_heatmap(ax_heatmap, ax, df, lineage_map, ancestor_phage)
+    # # 🔹 Ensure Heatmap is Drawn Correctly
+    # plot_index_heatmap(ax_heatmap, ax, df, lineage_map, ancestor_phage)
 
     # 🔹 Ensure Histograms are Drawn Correctly
     plot_mutation_histogram(ax_hist, lineage_map, mutation_counts)
