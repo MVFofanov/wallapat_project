@@ -1,13 +1,11 @@
 import os
 import re
-from typing import Dict, List
+from typing import Dict, List, Union
 
 import matplotlib
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
-import numpy as np
 import pandas as pd
-import seaborn as sns
 from Bio import SeqIO
 
 matplotlib.use('Agg')
@@ -78,7 +76,7 @@ def merge_infectivity_data(df: pd.DataFrame, index_df: pd.DataFrame) -> pd.DataF
     return merged_df
 
 
-def parse_genbank(genbank_file: str) -> List[Dict]:
+def parse_genbank(genbank_file: str) -> List[Dict[str, Union[str, int]]]:
     """Parses a GenBank file to extract gene annotations."""
     genes = []
     for record in SeqIO.parse(genbank_file, "genbank"):
@@ -97,7 +95,7 @@ def get_genome_length(genbank_file: str) -> int:
         return len(record.seq)
 
 
-def plot_gene_map(ax, genes, gene_y):
+def plot_gene_map(ax: matplotlib.axes.Axes, genes: List[Dict[str, Union[str, int]]], gene_y: float) -> None:
     print("Plotting gene map at y=", gene_y)  # Debugging
     y_offset = 2  # 0.6
 
@@ -126,7 +124,12 @@ def plot_gene_map(ax, genes, gene_y):
         )
 
 
-def plot_phage_mutations(ax, df, lineage_map, first_lineage_per_host, genome_length):
+def plot_phage_mutations(ax: matplotlib.axes.Axes,
+                         df: pd.DataFrame,
+                         lineage_map: Dict[str, int],
+                         first_lineage_per_host: Dict[str, str],
+                         genome_length: int
+                         ) -> None:
     """Plots mutation lines and points for each phage lineage using the mutation_type column for color."""
     mutation_colors = {"de_novo": "red", "ancestor": "black"}
 
@@ -151,10 +154,14 @@ def plot_phage_mutations(ax, df, lineage_map, first_lineage_per_host, genome_len
     ax.yaxis.set_tick_params(labelsize=28)
 
 
-def plot_stacked_mutation_histogram(ax, lineage_map, mutation_counts, de_novo_counts):
-    y_positions = [lineage_map[l] for l in lineage_map]
-    total_values = [mutation_counts.get(l, 0) for l in lineage_map]
-    de_novo_values = [de_novo_counts.get(l, 0) for l in lineage_map]
+def plot_stacked_mutation_histogram(ax: matplotlib.axes.Axes,
+                                    lineage_map: Dict[str, int],
+                                    mutation_counts: Dict[str, int],
+                                    de_novo_counts: Dict[str, int]
+                                    ) -> None:
+    y_positions = [lineage_map[lineage] for lineage in lineage_map]
+    total_values = [mutation_counts.get(lineage, 0) for lineage in lineage_map]
+    de_novo_values = [de_novo_counts.get(lineage, 0) for lineage in lineage_map]
     ancestor_values = [t - d for t, d in zip(total_values, de_novo_values)]
 
     ax.barh(y_positions, de_novo_values, color='red', alpha=0.8, height=0.5,
@@ -180,7 +187,13 @@ def plot_stacked_mutation_histogram(ax, lineage_map, mutation_counts, de_novo_co
     ax.legend(fontsize=20)
 
 
-def plot_mutations(df: pd.DataFrame, genes: List[Dict], ancestor_phage: str, genome_length: int, output_path: str, keep_lineage_name: bool = False) -> None:
+def plot_mutations(df: pd.DataFrame,
+                   genes: List[Dict[str, Union[str, int]]],
+                   ancestor_phage: str,
+                   genome_length: int,
+                   output_path: str,
+                   keep_lineage_name: bool = False
+                   ) -> None:
     """Main function to plot the mutations along the genome with histograms and a heatmap."""
 
     lineages = list(df['Phage Lineage'].unique())  # Do NOT include the ancestor
