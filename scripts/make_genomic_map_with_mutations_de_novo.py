@@ -97,11 +97,6 @@ def get_genome_length(genbank_file: str) -> int:
 
 def plot_gene_map(ax: matplotlib.axes.Axes, genes: List[Dict[str, Union[str, int]]], gene_y: float) -> None:
     print("Plotting gene map at y=", gene_y)  # Debugging
-    y_offset = 2  # 0.6
-
-    arrow_body_width = 1.5  # thicker shaft
-    arrow_head_length = 240  # same head
-    arrow_head_width = 4  # same width as before, or tweak if needed
 
     for i, gene in enumerate(genes):
         gene_start, gene_end = gene["start"], gene["end"]
@@ -110,15 +105,15 @@ def plot_gene_map(ax: matplotlib.axes.Axes, genes: List[Dict[str, Union[str, int
         ax.arrow(
             gene_start, gene_y,
             gene_end - gene_start, 0,
-            width=1.5,
+            width=0.5,
             head_length=120,
-            head_width=3,
+            head_width=1,
             length_includes_head=True,
             fc='gray', ec='black', zorder=50
         )
 
         ax.text(
-            gene_mid, gene_y + 2,  # fixed offset
+            gene_mid, gene_y + 0.5,  # fixed offset
             gene["gene"], ha='center', fontsize=28, rotation=90,
             va='bottom', zorder=50
         )
@@ -145,7 +140,7 @@ def plot_phage_mutations(ax: matplotlib.axes.Axes,
         y_pos = lineage_map[lineage]  # Make sure it uses the new spaced y-positions
 
         for pos, color in zip(data['POS'], colors):
-            ax.vlines(x=pos, ymin=y_pos - 0.4, ymax=y_pos + 0.4, color=color, linewidth=2, alpha=0.9)
+            ax.vlines(x=pos, ymin=y_pos - 0.2, ymax=y_pos + 0.2, color=color, linewidth=2, alpha=0.9)
         if lineage in first_lineage_per_host:
             ax.text(-600, y_pos, first_lineage_per_host[lineage], va='center', fontsize=28, ha='right')
 
@@ -164,10 +159,10 @@ def plot_stacked_mutation_histogram(ax: matplotlib.axes.Axes,
     de_novo_values = [de_novo_counts.get(lineage, 0) for lineage in lineage_map]
     ancestor_values = [t - d for t, d in zip(total_values, de_novo_values)]
 
-    ax.barh(y_positions, de_novo_values, color='red', alpha=0.8, height=0.5,
+    ax.barh(y_positions, de_novo_values, color='red', alpha=0.8, height=0.4,
             edgecolor='black', label='De Novo')
     ax.barh(y_positions, ancestor_values, left=de_novo_values, color='gray',
-            alpha=0.6, height=0.5, edgecolor='black', label='Ancestral')
+            alpha=0.6, height=0.4, edgecolor='black', label='Ancestral')
 
     # Add labels
     for y, t in zip(y_positions, total_values):
@@ -205,12 +200,12 @@ def plot_mutations(df: pd.DataFrame,
     lineage_map = {}
 
     y_position = 0
-    extra_space = 2  # Extra spacing after each Host Bacteria group
+    extra_space = 1  # Extra spacing after each Host Bacteria group
 
     for host, lineages_in_host in host_bacteria_groups.items():
         for lineage in reversed(lineages_in_host):
             lineage_map[lineage] = y_position
-            y_position += 1
+            y_position += 0.5
         y_position += extra_space  # Extra spacing
 
     first_lineage_per_host = {}
@@ -218,7 +213,7 @@ def plot_mutations(df: pd.DataFrame,
         if len(lineages_in_host) > 0:
             first_lineage_per_host[lineages_in_host[0]] = host
 
-    gene_y = max(lineage_map.values()) + 3
+    gene_y = max(lineage_map.values()) + 1
 
     suffix_regexp = r'P\d+L\d+$'
     lineage_labels = {}
@@ -260,7 +255,7 @@ def plot_mutations(df: pd.DataFrame,
     plot_gene_map(ax, genes, gene_y)
 
     # ✅ Re-set y-axis to ensure visibility
-    ax.set_ylim(-5, gene_y + 5)
+    ax.set_ylim(-0.5, gene_y + 1.5)
     ax.set_yticks([])
 
     print("Gene Y:", gene_y)
