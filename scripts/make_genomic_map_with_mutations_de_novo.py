@@ -95,10 +95,21 @@ def plot_gene_map(ax, genes, gene_y):
     print("Plotting gene map at y=", gene_y)  # Debugging
     y_offset = 0.6
 
+    arrow_body_width = 1.5  # thicker shaft
+    arrow_head_length = 240  # same head
+    arrow_head_width = 4  # same width as before, or tweak if needed
+
     for i, gene in enumerate(genes):
-        ax.arrow(gene["start"], gene_y, gene["end"] - gene["start"], 0,
-                 head_width=2, head_length=100, fc='gray', ec='black',
-                 length_includes_head=True, zorder=50)  # ✅ zorder=50 ensures visibility
+
+        ax.arrow(
+            gene["start"], gene_y,
+            gene["end"] - gene["start"], 0,
+            width=arrow_body_width,
+            head_length=arrow_head_length,
+            head_width=arrow_head_width,
+            length_includes_head=True,
+            fc='gray', ec='black', zorder=50
+        )
 
         ax.text((gene["start"] + gene["end"]) / 2, gene_y + y_offset * ((-1) ** i),
                 gene["gene"], ha='center', fontsize=28, rotation=90, va='bottom', zorder=50)  # ✅ Ensure text is on top
