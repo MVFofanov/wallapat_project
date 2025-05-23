@@ -3,6 +3,7 @@ import re
 from typing import Dict, List, Union
 
 import matplotlib
+import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 import pandas as pd
@@ -14,15 +15,15 @@ os.environ["QT_QPA_PLATFORM"] = "offscreen"
 
 
 FUNCTION_COLORS = {
-    "connector": "#5A5A5A",
-    "DNA, RNA and nucleotide metabolism": "#f000ff",
     "head and packaging": "#ff008d",
-    "integration and excision": "#E0B0FF",
+    "transcription regulation": "#ffe700",
     "lysis": "#001eff",
+    "dna, rna and nucleotide metabolism": "#f000ff",
+    "tail": "#74ee15",
+    "connector": "#5A5A5A",
+    "integration and excision": "#E0B0FF",
     "moron, auxiliary metabolic gene and host takeover": "#8900ff",
     "other": "#4deeea",
-    "tail": "#74ee15",
-    "transcription regulation": "#ffe700",
     "unknown": "#AAAAAA",
     "unknown function": "#AAAAAA"
 }
@@ -280,6 +281,23 @@ def plot_mutations(df: pd.DataFrame,
     # ✅ Plot the reference genome and gene map last to ensure they are visible
     plot_gene_map(ax, genes, gene_y)
 
+    # # Add legend for gene functions in top-left corner
+    # legend_handles = [
+    #     mpatches.Patch(color=color, label=label)
+    #     for label, color in FUNCTION_COLORS.items()
+    # ]
+    #
+    # ax.legend(
+    #     handles=legend_handles,
+    #     loc='upper right',
+    #     bbox_to_anchor=(1.0, 1.15),  # ⬅️ fine-tune vertical and horizontal position
+    #     ncol=1,  # ⬅️ single column (can change to 2+)
+    #     fontsize=14,
+    #     title="Gene Functions",
+    #     title_fontsize=16,
+    #     frameon=True
+    # )
+
     # ✅ Re-set y-axis to ensure visibility
     ax.set_ylim(-0.5, gene_y + 1.5)
     ax.set_yticks([])
@@ -287,6 +305,33 @@ def plot_mutations(df: pd.DataFrame,
     print("Gene Y:", gene_y)
     # print("Ancestor Y:", ancestor_y)
     print("Lineage Map:", lineage_map)
+
+    # Extract only used functions from the gene annotations
+    used_functions = set(gene["function"].strip().lower() for gene in genes)
+
+    # Filter FUNCTION_COLORS to include only those used
+    filtered_function_colors = {func: color for func, color in FUNCTION_COLORS.items() if func in used_functions}
+
+    # Create legend handles for functional colors
+    legend_handles = [
+        mpatches.Patch(facecolor=color, edgecolor='black', label=func.title())
+        for func, color in filtered_function_colors.items()
+    ]
+
+    # Place legend outside the figure (right side)
+    fig.legend(
+        handles=legend_handles,
+        loc='lower center',
+        bbox_to_anchor=(0.78, 1.02),  # ⬅️ carefully positioned above the right subplot
+        fontsize=14,
+        title="Gene Functions",
+        title_fontsize=16,
+        frameon=True,
+        ncol=1,  # split legend into two columns to make it more compact
+    )
+
+    # Optional: give more space for the legend outside
+    fig.subplots_adjust(left=0.1, right=0.95, top=0.90, bottom=0.05, wspace=0.1)
 
     # 🔹 **Ensure output directory exists and save**
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
