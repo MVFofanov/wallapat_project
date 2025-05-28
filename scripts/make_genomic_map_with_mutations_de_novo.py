@@ -333,6 +333,10 @@ def plot_mutations(df: pd.DataFrame,
     # Optional: give more space for the legend outside
     fig.subplots_adjust(left=0.1, right=0.95, top=0.90, bottom=0.05, wspace=0.1)
 
+    # ✅ Set a title for the entire figure
+    ancestor_name = ancestor_phage.rstrip("_reference")
+    fig.suptitle(f"{ancestor_name} descendants mutation analysis in different hosts", fontsize=32, fontweight='bold', y=1.1)
+
     # 🔹 **Ensure output directory exists and save**
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     plt.savefig(output_path, bbox_inches='tight', dpi=300)
