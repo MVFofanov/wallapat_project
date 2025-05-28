@@ -1,6 +1,6 @@
 import os
 import re
-from typing import Dict, List, Union
+from typing import Dict, List, Tuple, Union
 
 import matplotlib
 import matplotlib.patches as mpatches
@@ -209,6 +209,61 @@ def plot_stacked_mutation_histogram(ax: matplotlib.axes.Axes,
     ax.legend(fontsize=20)
 
 
+def prepare_lineage_mapping(df: pd.DataFrame, keep_lineage_name: bool = False) -> Tuple[Dict[str, float], Dict[str, str], Dict[str, str], float]:
+    """
+    Prepares the lineage_map, first_lineage_per_host, and optionally lineage_labels for plotting.
+    Returns:
+        lineage_map, first_lineage_per_host, lineage_labels, gene_y_position
+    """
+    host_bacteria_groups = df.groupby(df['Host Bacteria'].str.strip())["Phage Lineage"].unique()
+
+    lineage_map = {}
+    y_position = 0
+    extra_space = 1  # Extra spacing after each Host Bacteria group
+
+    for host, lineages_in_host in host_bacteria_groups.items():
+        for lineage in reversed(lineages_in_host):
+            lineage_map[lineage] = y_position
+            y_position += 0.5
+        y_position += extra_space
+
+    first_lineage_per_host = {}
+    for host, lineages_in_host in host_bacteria_groups.items():
+        if len(lineages_in_host) > 0:
+            first_lineage_per_host[lineages_in_host[0]] = host
+
+    suffix_regexp = r'P\d+L\d+$'
+    lineage_labels = {}
+
+    for lineage in lineage_map:
+        if keep_lineage_name:
+            lineage_labels[lineage] = lineage
+        else:
+            lineage_labels[lineage] = re.sub(suffix_regexp, '', lineage)
+
+    gene_y = max(lineage_map.values()) + 1
+    return lineage_map, first_lineage_per_host, lineage_labels, gene_y
+
+
+def compute_mutation_counts(df: pd.DataFrame) -> Tuple[Dict[str, int], Dict[str, int]]:
+    """
+    Computes total and de novo mutation counts per lineage.
+    Returns:
+        mutation_counts, de_novo_counts
+    """
+    mutation_counts = df.groupby('Phage Lineage')['POS'].count().to_dict()
+    de_novo_counts = df[df["mutation_type"] == "de_novo"].groupby("Phage Lineage")["POS"].count().to_dict()
+    return mutation_counts, de_novo_counts
+
+
+def get_used_function_colors(genes: List[Dict[str, Union[str, int]]], function_colors: Dict[str, str]) -> Dict[str, str]:
+    """
+    Filters the FUNCTION_COLORS to only include those used in the GenBank annotations.
+    """
+    used_functions = set(gene["function"].strip().lower() for gene in genes)
+    return {func: color for func, color in function_colors.items() if func in used_functions}
+
+
 def plot_mutations(df: pd.DataFrame,
                    genes: List[Dict[str, Union[str, int]]],
                    ancestor_phage: str,
@@ -224,23 +279,8 @@ def plot_mutations(df: pd.DataFrame,
     host_bacteria_groups = df.groupby(df['Host Bacteria'].str.strip())["Phage Lineage"].unique()
 
     # Initialize lineage map with extra spacing
-    lineage_map = {}
 
-    y_position = 0
-    extra_space = 1  # Extra spacing after each Host Bacteria group
-
-    for host, lineages_in_host in host_bacteria_groups.items():
-        for lineage in reversed(lineages_in_host):
-            lineage_map[lineage] = y_position
-            y_position += 0.5
-        y_position += extra_space  # Extra spacing
-
-    first_lineage_per_host = {}
-    for host, lineages_in_host in host_bacteria_groups.items():
-        if len(lineages_in_host) > 0:
-            first_lineage_per_host[lineages_in_host[0]] = host
-
-    gene_y = max(lineage_map.values()) + 1
+    lineage_map, first_lineage_per_host, lineage_labels, gene_y = prepare_lineage_mapping(df, keep_lineage_name)
 
     suffix_regexp = r'P\d+L\d+$'
     lineage_labels = {}
@@ -253,10 +293,7 @@ def plot_mutations(df: pd.DataFrame,
 
     df['Lineage Order'] = df['Phage Lineage'].map(lineage_map)
 
-    mutation_counts = df.groupby('Phage Lineage')['POS'].count().to_dict()
-
-    # Mutation counts for de_novo only
-    de_novo_counts = df[df["mutation_type"] == "de_novo"].groupby("Phage Lineage")["POS"].count().to_dict()
+    mutation_counts, de_novo_counts = compute_mutation_counts(df)
 
     fig, axs = plt.subplots(nrows=1, ncols=2, gridspec_kw={'width_ratios': [3, 1]},
                             figsize=(30, len(lineages) * 0.6 + 10))
@@ -287,23 +324,6 @@ def plot_mutations(df: pd.DataFrame,
     # ✅ Plot the reference genome and gene map last to ensure they are visible
     plot_gene_map(ax, genes, gene_y)
 
-    # # Add legend for gene functions in top-left corner
-    # legend_handles = [
-    #     mpatches.Patch(color=color, label=label)
-    #     for label, color in FUNCTION_COLORS.items()
-    # ]
-    #
-    # ax.legend(
-    #     handles=legend_handles,
-    #     loc='upper right',
-    #     bbox_to_anchor=(1.0, 1.15),  # ⬅️ fine-tune vertical and horizontal position
-    #     ncol=1,  # ⬅️ single column (can change to 2+)
-    #     fontsize=14,
-    #     title="Gene Functions",
-    #     title_fontsize=16,
-    #     frameon=True
-    # )
-
     # ✅ Re-set y-axis to ensure visibility
     ax.set_ylim(-0.5, gene_y + 1.5)
     ax.set_yticks([])
@@ -313,10 +333,7 @@ def plot_mutations(df: pd.DataFrame,
     print("Lineage Map:", lineage_map)
 
     # Extract only used functions from the gene annotations
-    used_functions = set(gene["function"].strip().lower() for gene in genes)
-
-    # Filter FUNCTION_COLORS to include only those used
-    filtered_function_colors = {func: color for func, color in FUNCTION_COLORS.items() if func in used_functions}
+    filtered_function_colors = get_used_function_colors(genes, FUNCTION_COLORS)
 
     # Create legend handles for functional colors
     legend_handles = [
@@ -329,9 +346,9 @@ def plot_mutations(df: pd.DataFrame,
         handles=legend_handles,
         loc='lower center',
         bbox_to_anchor=(0.78, 1.02),  # ⬅️ carefully positioned above the right subplot
-        fontsize=14,
+        fontsize=24,
         title="Gene Functions",
-        title_fontsize=16,
+        title_fontsize=28,
         frameon=True,
         ncol=1,  # split legend into two columns to make it more compact
     )
