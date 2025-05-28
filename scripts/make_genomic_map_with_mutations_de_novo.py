@@ -336,6 +336,7 @@ def plot_mutations(df: pd.DataFrame,
     # 🔹 **Ensure output directory exists and save**
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     plt.savefig(output_path, bbox_inches='tight', dpi=300)
+    plt.savefig(output_path.replace(".png", ".svg"), bbox_inches='tight')  # Save as SVG
     plt.close()
 
 
