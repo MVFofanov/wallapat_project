@@ -169,7 +169,7 @@ def plot_phage_mutations(ax: matplotlib.axes.Axes,
         for pos, color in zip(data['POS'], colors):
             ax.vlines(x=pos, ymin=y_pos - 0.2, ymax=y_pos + 0.2, color=color, linewidth=2, alpha=0.9)
         if lineage in first_lineage_per_host:
-            ax.text(-600, y_pos, first_lineage_per_host[lineage], va='center', fontsize=28, ha='right')
+            ax.text(-400, y_pos, first_lineage_per_host[lineage], va='center', fontsize=28, ha='right')
 
     # Ensure consistent font size for x and y axis ticks
     ax.xaxis.set_tick_params(labelsize=28)
@@ -196,7 +196,7 @@ def plot_stacked_mutation_histogram(ax: matplotlib.axes.Axes,
         ax.text(t + 0.5, y, str(t), va='center', fontsize=20)
 
     ax.set_xlabel("Mutation Count", fontsize=28, fontweight='bold')
-    ax.set_ylabel("Phage Lineage", fontsize=28, fontweight='bold')
+    # ax.set_ylabel("Phage Lineage", fontsize=28, fontweight='bold')
     ax.set_title("De Novo vs. Ancestral Mutations", fontsize=24, fontweight='bold')
 
     ax.xaxis.set_tick_params(labelsize=24)
@@ -275,6 +275,12 @@ def plot_mutations(df: pd.DataFrame,
     # 🔹 Ensure Phage Mutations are Drawn
     plot_phage_mutations(ax, df, lineage_map, first_lineage_per_host, genome_length)
 
+    ax.set_xlabel("Genome position", fontsize=28,
+                  fontweight='bold')  # if you have this, or just place below ax.xaxis settings
+    ax.set_ylabel("Bacterial host and phage lineages", fontsize=28,
+                  fontweight='bold', labelpad=150)
+    ax.tick_params(axis='y', which='major', pad=0)  # Reduce distance from ticks to axis
+
     # 🔹 Ensure Histograms are Drawn Correctly
     plot_stacked_mutation_histogram(ax_hist, lineage_map, mutation_counts, de_novo_counts)
 
@@ -335,7 +341,7 @@ def plot_mutations(df: pd.DataFrame,
 
     # ✅ Set a title for the entire figure
     ancestor_name = ancestor_phage.rstrip("_reference")
-    fig.suptitle(f"{ancestor_name} descendants mutation analysis in different hosts", fontsize=32, fontweight='bold', y=1.1)
+    fig.suptitle(f"{ancestor_name} descendants mutation analysis in different bacterial hosts", fontsize=40, fontweight='bold', y=1.15)
 
     # 🔹 **Ensure output directory exists and save**
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
