@@ -1,3 +1,5 @@
+from collections import defaultdict
+import glob
 import os
 import re
 from typing import Dict, List, Tuple, Union
@@ -379,23 +381,86 @@ if __name__ == "__main__":
     # Load infectivity index data
     index_df = load_infectivity_data(infectivity_file)
 
-    phages = ('P1L1', 'P2L1')
-    for ancestor_phage in phages:
-        genbank_file = f"{wd}/{ancestor_phage}_phold_annotation.gbk"
-        sheet_name = f"{ancestor_phage}_filter"
+    phages = ('P 1L1', 'P2L1')
+    # for ancestor_phage in phages:
+    #     genbank_file = f"{wd}/{ancestor_phage}_phold_annotation.gbk"
+    #     sheet_name = f"{ancestor_phage}_filter"
+    #
+    #     output_file = f"{figures}/{ancestor_phage}_phage_mutations_with_genes_de_novo.png"
+    #
+    #     # Load mutation data
+    #     df = load_mutation_data(file_path, sheet_name)
+    #     df = extract_lineage_info(df, ancestor_phage=ancestor_phage)
+    #
+    #     # Merge infectivity index
+    #     df = merge_infectivity_data(df, index_df)
+    #
+    #     # Load gene annotations
+    #     genes = parse_genbank(genbank_file)
+    #     genome_length = get_genome_length(genbank_file)
+    #
+    #     # Plot mutations
+    #     plot_mutations(df, genes, f'{ancestor_phage}_reference', genome_length, output_file)
 
-        output_file = f"{figures}/{ancestor_phage}_phage_mutations_with_genes_de_novo.png"
+    # 2025-05-08 new run analysis
 
-        # Load mutation data
-        df = load_mutation_data(file_path, sheet_name)
-        df = extract_lineage_info(df, ancestor_phage=ancestor_phage)
+    new_fasta_dir = f"{wd}/genomes_new_run_2025_05"
+    new_gbk_dir = f"{wd}/genomes_new_run_2025_05_annotation"
+    infectivity_dir = f"{wd}/infectivity_index"
 
-        # Merge infectivity index
+    file_path = f"{wd}/20250509_REF_MUT_analysis.xlsx"
+
+    # Get FASTA filenames (e.g., MN988483.P3_L1.consensus.fasta)
+    fasta_files = glob.glob(os.path.join(new_fasta_dir, "*.fasta"))
+    phages = []
+    phage_to_ncbi = {}
+
+    for f in fasta_files:
+        base = os.path.basename(f).replace(".consensus.fasta", "")
+        ncbi_id, phage_name = base.split(".", 1)
+        phages.append(phage_name)
+        phage_to_ncbi[phage_name] = ncbi_id
+
+    # Group by pairs like P3_P4 → [P3_L1, P4_L1]
+
+    pair_to_phages = defaultdict(list)
+    for p in phages:
+        group = "_".join(p.split("_")[:1])  # Use P3, P4 etc
+        pair_to_phages[group].append(p)
+
+    index_df_dict = {}  # Cache index tables for each pair
+
+    for group_prefix in ["P3-P4", "P5-P6", "P7-P8"]:
+        try:
+            index_path = os.path.join(infectivity_dir, f"infectivity_index_{group_prefix}.csv")
+            index_df_dict[group_prefix] = load_infectivity_data(index_path)
+        except FileNotFoundError:
+            print(f"❌ Could not find infectivity file for {group_prefix}")
+
+    for phage in phages:
+        ncbi = phage_to_ncbi[phage]
+        genbank_file = f"{new_gbk_dir}/{ncbi}.{phage}.gbk"
+        sheet_name = f"{phage.replace('_', '')}_filter"
+        output_file = f"{figures}/{phage}_phage_mutations_with_genes_de_novo.png"
+
+        group = "-".join(phage[:2] + str(int(phage.split("_")[0][1:]) + 1))  # crude P3_L1 → P3-P4 etc
+
+        index_df = None
+        for g, df in index_df_dict.items():
+            if phage.startswith(g.split("-")[0]) or phage.startswith(g.split("-")[1]):
+                index_df = df
+                break
+        if index_df is None:
+            print(f"⚠️ Skipping {phage} – no infectivity index found")
+            continue
+
+        try:
+            df = load_mutation_data(file_path, sheet_name)
+        except ValueError:
+            print(f"⚠️ Sheet {sheet_name} not found in Excel")
+            continue
+
+        df = extract_lineage_info(df, ancestor_phage=phage)
         df = merge_infectivity_data(df, index_df)
-
-        # Load gene annotations
         genes = parse_genbank(genbank_file)
         genome_length = get_genome_length(genbank_file)
-
-        # Plot mutations
-        plot_mutations(df, genes, f'{ancestor_phage}_reference', genome_length, output_file)
