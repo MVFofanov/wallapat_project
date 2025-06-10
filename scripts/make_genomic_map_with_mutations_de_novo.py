@@ -196,23 +196,27 @@ def plot_stacked_mutation_histogram(ax: matplotlib.axes.Axes,
                                     mutation_counts: Dict[str, int],
                                     de_novo_counts: Dict[str, int]
                                     ) -> None:
+    """
+    Plots a stacked horizontal bar chart of ancestral and de novo mutations.
+    Now with ancestral on the bottom and de novo on top.
+    """
     y_positions = [lineage_map[lineage] for lineage in lineage_map]
     total_values = [mutation_counts.get(lineage, 0) for lineage in lineage_map]
     de_novo_values = [de_novo_counts.get(lineage, 0) for lineage in lineage_map]
     ancestor_values = [t - d for t, d in zip(total_values, de_novo_values)]
 
-    ax.barh(y_positions, de_novo_values, color='red', alpha=0.8, height=0.4,
-            edgecolor='black', label='De Novo')
-    ax.barh(y_positions, ancestor_values, left=de_novo_values, color='gray',
-            alpha=0.6, height=0.4, edgecolor='black', label='Ancestral')
+    # First draw ancestral (gray), then de novo (red) on top
+    ax.barh(y_positions, ancestor_values, color='gray', alpha=0.6, height=0.4,
+            edgecolor='black', label='Ancestral')
+    ax.barh(y_positions, de_novo_values, left=ancestor_values, color='red',
+            alpha=0.8, height=0.4, edgecolor='black', label='De Novo')
 
-    # Add labels
+    # Add text labels showing total mutation counts
     for y, t in zip(y_positions, total_values):
         ax.text(t + 0.5, y, str(t), va='center', fontsize=20)
 
     ax.set_xlabel("Mutation Count", fontsize=28, fontweight='bold')
-    # ax.set_ylabel("Phage Lineage", fontsize=28, fontweight='bold')
-    ax.set_title("De Novo vs. Ancestral Mutations", fontsize=24, fontweight='bold')
+    ax.set_title("Ancestral vs. De Novo Mutations", fontsize=24, fontweight='bold')
 
     ax.xaxis.set_tick_params(labelsize=24)
     ax.yaxis.set_tick_params(labelsize=24)
