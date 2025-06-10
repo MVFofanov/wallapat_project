@@ -399,26 +399,26 @@ if __name__ == "__main__":
     # Load infectivity index data
     index_df = load_infectivity_data(infectivity_file)
 
-    phages = ('P 1L1', 'P2L1')
-    # for ancestor_phage in phages:
-    #     genbank_file = f"{wd}/{ancestor_phage}_phold_annotation.gbk"
-    #     sheet_name = f"{ancestor_phage}_filter"
-    #
-    #     output_file = f"{figures}/{ancestor_phage}_phage_mutations_with_genes_de_novo.png"
-    #
-    #     # Load mutation data
-    #     df = load_mutation_data(file_path, sheet_name)
-    #     df = extract_lineage_info(df, ancestor_phage=ancestor_phage)
-    #
-    #     # Merge infectivity index
-    #     df = merge_infectivity_data(df, index_df)
-    #
-    #     # Load gene annotations
-    #     genes = parse_genbank(genbank_file)
-    #     genome_length = get_genome_length(genbank_file)
-    #
-    #     # Plot mutations
-    #     plot_mutations(df, genes, f'{ancestor_phage}_reference', genome_length, output_file)
+    phages = ('P1L1', 'P2L1')
+    for ancestor_phage in phages:
+        genbank_file = f"{wd}/{ancestor_phage}_phold_annotation.gbk"
+        sheet_name = f"{ancestor_phage}_filter"
+
+        output_file = f"{figures}/{ancestor_phage}_phage_mutations_with_genes_de_novo.png"
+
+        # Load mutation data
+        df = load_mutation_data(file_path, sheet_name)
+        df = extract_lineage_info(df, ancestor_phage=ancestor_phage, experiment_version=1)
+
+        # Merge infectivity index
+        df = merge_infectivity_data(df, index_df)
+
+        # Load gene annotations
+        genes = parse_genbank(genbank_file)
+        genome_length = get_genome_length(genbank_file)
+
+        # Plot mutations
+        plot_mutations(df, genes, f'{ancestor_phage}_reference', genome_length, output_file)
 
     # 2025-05-08 new run analysis
 
