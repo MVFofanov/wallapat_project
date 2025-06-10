@@ -126,16 +126,19 @@ def get_genome_length(genbank_file: str) -> int:
         return len(record.seq)
 
 
-def plot_gene_map(ax: matplotlib.axes.Axes, genes: List[Dict[str, Union[str, int]]], gene_y: float) -> None:
-    print("Plotting gene map at y=", gene_y)  # Debugging
+def plot_gene_map(ax: matplotlib.axes.Axes,
+                  genes: List[Dict[str, Union[str, int]]],
+                  gene_y: float,
+                  mutation_positions: List[int],
+                  label_all: bool = True) -> None:
+    """Plots genes along the genome, optionally labeling only those overlapping mutations."""
+    print("Plotting gene map at y=", gene_y)  # Debug
 
-    for i, gene in enumerate(genes):
+    for gene in genes:
         gene_start, gene_end = gene["start"], gene["end"]
         gene_mid = (gene_start + gene_end) / 2
 
         function = gene.get("function", "unknown function").strip().lower()
-
-        # Normalize the function key to match dictionary
         color = FUNCTION_COLORS.get(function, FUNCTION_COLORS["unknown"])
 
         ax.arrow(
@@ -148,11 +151,14 @@ def plot_gene_map(ax: matplotlib.axes.Axes, genes: List[Dict[str, Union[str, int
             fc=color, ec='black', zorder=50
         )
 
-        ax.text(
-            gene_mid, gene_y + 0.5,  # fixed offset
-            gene["gene"], ha='center', fontsize=28, rotation=90,
-            va='bottom', zorder=50
-        )
+        # Only label if label_all is True or gene overlaps a mutation
+        has_mutation = any(gene_start <= pos <= gene_end for pos in mutation_positions)
+        if label_all or has_mutation:
+            ax.text(
+                gene_mid, gene_y + 0.5,
+                gene["gene"], ha='center', fontsize=28, rotation=90,
+                va='bottom', zorder=50
+            )
 
 
 def plot_phage_mutations(ax: matplotlib.axes.Axes,
@@ -331,7 +337,12 @@ def plot_mutations(df: pd.DataFrame,
     plot_stacked_mutation_histogram(ax_hist, lineage_map, mutation_counts, de_novo_counts)
 
     # ✅ Plot the reference genome and gene map last to ensure they are visible
-    plot_gene_map(ax, genes, gene_y)
+    # plot_gene_map(ax, genes, gene_y)
+
+    mutation_positions = df["POS"].tolist()
+    label_all_genes = len(genes) < 20
+
+    plot_gene_map(ax, genes, gene_y, mutation_positions, label_all=label_all_genes)
 
     # ✅ Re-set y-axis to ensure visibility
     ax.set_ylim(-0.5, gene_y + 1.5)
