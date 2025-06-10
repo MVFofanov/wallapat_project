@@ -464,3 +464,5 @@ if __name__ == "__main__":
         df = merge_infectivity_data(df, index_df)
         genes = parse_genbank(genbank_file)
         genome_length = get_genome_length(genbank_file)
+
+        plot_mutations(df, genes, f'{phage}_reference', genome_length, output_file)
