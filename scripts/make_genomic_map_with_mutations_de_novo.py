@@ -44,23 +44,30 @@ def load_mutation_data(file_path: str, sheet_name: str) -> pd.DataFrame:
     return df
 
 
-def extract_lineage_info(df: pd.DataFrame, ancestor_phage: str) -> pd.DataFrame:
-    """Extract ancestor phage, phage lineage, and host bacteria from combined_id."""
+def extract_lineage_info(df: pd.DataFrame, ancestor_phage: str, experiment_version: int = 1) -> pd.DataFrame:
+    """Extracts phage lineage and host bacteria name depending on experiment version."""
 
-    df['Ancestor Phage'] = df['combined_id'].apply(lambda x: x.split('.')[0])
-    df['Phage Lineage'] = df['combined_id'].apply(lambda x: '.'.join(x.split('.')[1:])[:-4])
+    if experiment_version == 1:
+        # Original approach
+        df['Ancestor Phage'] = df['combined_id'].apply(lambda x: x.split('.')[0])
+        df['Phage Lineage'] = df['combined_id'].apply(lambda x: '.'.join(x.split('.')[1:])[:-4])
 
-    # Regex pattern to extract suffix (e.g., P1L1, P2L5, etc.)
-    suffix_regexp = r'P\d+L\d+$'
+        suffix_regexp = r'P\d+L\d+$'
+        df['Host Bacteria'] = df['Phage Lineage'].apply(lambda x: re.sub(suffix_regexp, '', x))
 
-    def extract_host_bacteria(lineage):
-        return re.sub(suffix_regexp, '', lineage)  # Removes only the exact suffix
+    elif experiment_version == 2:
+        # New format: *.consensus.PX_HOST_LY
+        df['Phage Lineage'] = df['combined_id'].str.replace(r'\.fasta$', '', regex=True)
 
-    # Apply the function to extract the correct Host Bacteria name
-    df['Host Bacteria'] = df['Phage Lineage'].apply(extract_host_bacteria)
+        # Host is extracted from the last part (e.g., P8_Y1-16_L3 → Y1-16)
+        host_extraction_regex = r'\.consensus\.P\d+_(.*?)_L\d+'
+        df['Host Bacteria'] = df['Phage Lineage'].str.extract(host_extraction_regex)[0]
 
-    # Print first 20 rows to verify the results
-    # print(df[['combined_id', 'Phage Lineage', 'Host Bacteria']].head(20))
+        # Optional: if needed
+        df['Ancestor Phage'] = ancestor_phage
+
+    else:
+        raise ValueError("Unsupported experiment_version. Use 1 or 2.")
 
     return df
 
@@ -460,7 +467,8 @@ if __name__ == "__main__":
             print(f"⚠️ Sheet {sheet_name} not found in Excel")
             continue
 
-        df = extract_lineage_info(df, ancestor_phage=phage)
+        # df = extract_lineage_info(df, ancestor_phage=phage)
+        extract_lineage_info(df, ancestor_phage=phage, experiment_version=2)
         df = merge_infectivity_data(df, index_df)
         genes = parse_genbank(genbank_file)
         genome_length = get_genome_length(genbank_file)
